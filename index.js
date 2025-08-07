@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const authRoutes = require('./routes/authRoutes'); // ✅ ADD THIS LINE
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,7 +15,10 @@ app.get('/', (req, res) => {
   res.send('Backend is working!');
 });
 
-// MongoDB connection (replace with your Render Mongo URI)
+// ✅ Use auth routes (REGISTER YOUR ENDPOINTS)
+app.use('/api/auth', authRoutes);
+
+// MongoDB connection
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -22,7 +26,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 .then(() => console.log('✅ MongoDB connected'))
 .catch(err => {
   console.error('❌ MongoDB connection error:', err.message);
-  process.exit(1); // this line can crash if error
+  process.exit(1);
 });
 
 // Start server
