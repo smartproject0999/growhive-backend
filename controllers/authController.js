@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const User = require('../models/User');
+const jwt = require('jsonwebtoken');
 
 // Nodemailer Transporter
 const transporter = nodemailer.createTransport({
@@ -181,27 +182,28 @@ const verifyOtp = async (req, res) => {
 };
 
 // ✅ Login user
+
+
 const loginUser = async (req, res) => {
-    const { email, password } = req.body;
+  const { email, password } = req.body;
 
-    if (!email || !password) {
-        return res.status(400).json({ error: "Email and password are required" });
-    }
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: "User not found" });
 
-    try {
-        const user = await User.findOne({ email });
-        if (!user) return res.status(401).json({ error: "Invalid email" });
-        if (!user.isVerified) return res.status(403).json({ error: "Please verify your email before logging in" });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ error: "Invalid credentials" });
 
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(401).json({ error: "Incorrect password" });
+    // Generate JWT
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: '7d' // valid for 7 days
+    });
 
-        return res.status(200).json({ message: "Login successful" });
-
-    } catch (err) {
-        console.error("Login Error:", err);
-        res.status(500).json({ error: "Server error" });
-    }
+    res.json({ token, user });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
+
 
 module.exports = { registerUser, verifyOtp, loginUser };
