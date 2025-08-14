@@ -298,7 +298,7 @@ const forgotPassword = async (req, res) => {
 
 <div class="email-container">
     <div class="logo">
-        <img src="src="https://cdn-icons-png.flaticon.com/512/2909/2909769.png" alt="logo">
+        <img src="src="https://img.eselt.de/img/18307432_99ESH9EJScJGDpCt/ad.jpg" alt="logo">
     </div>
     <div class="title">Smart Urban Farming <br>System</div>
     <div class="divider"></div>
