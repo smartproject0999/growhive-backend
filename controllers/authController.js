@@ -287,6 +287,37 @@ const resetPassword = async (req, res) => {
     }
 };
 
+
+// ==========================
+// GET USER PROFILE (Authenticated)
+// ==========================
+const getProfile = async (req, res) => {
+    try {
+        // Extract token from Authorization header
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return res.status(401).json({ error: "Authorization token missing or invalid" });
+        }
+
+        const token = authHeader.split(" ")[1];
+
+        // Verify token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // Find user by decoded id
+        const user = await User.findById(decoded.id).select("-password -otp -otpExpiry");
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        res.json({ user });
+    } catch (err) {
+        console.error("Get Profile Error:", err);
+        res.status(500).json({ error: "Server error" });
+    }
+};
+
+
 // Export all
 module.exports = {
     registerUser,
@@ -294,7 +325,8 @@ module.exports = {
     loginUser,
     forgotPassword,
     verifyResetOtp,
-    resetPassword
+    resetPassword,
+    getProfile
 };
 
-module.exports = { registerUser, verifyOtp, loginUser,forgotPassword,verifyResetOtp,resetPassword };
+module.exports = { registerUser, verifyOtp, loginUser,forgotPassword,verifyResetOtp,resetPassword,getProfile };
