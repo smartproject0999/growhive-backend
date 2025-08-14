@@ -206,4 +206,95 @@ const loginUser = async (req, res) => {
 };
 
 
-module.exports = { registerUser, verifyOtp, loginUser };
+// ==========================
+// FORGOT PASSWORD - SEND OTP
+// ==========================
+const forgotPassword = async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: "Email is required" });
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        const otp = generateOTP();
+        user.otp = otp;
+        user.otpExpiry = Date.now() + 5 * 60 * 1000;
+        await user.save();
+
+        await transporter.sendMail({
+            from: process.env.EMAIL,
+            to: email,
+            subject: 'Password Reset OTP - Smart Urban Farming System',
+            html: `<h2>Your password reset OTP is ${otp}</h2>`
+        });
+
+        res.json({ message: "OTP sent to your email" });
+    } catch (err) {
+        console.error("Forgot Password Error:", err);
+        res.status(500).json({ error: "Server error" });
+    }
+};
+
+// ==========================
+// VERIFY RESET OTP
+// ==========================
+const verifyResetOtp = async (req, res) => {
+    const { email, otp } = req.body;
+    if (!email || !otp) return res.status(400).json({ error: "Email and OTP are required" });
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        if (user.otp !== otp) return res.status(400).json({ error: "Invalid OTP" });
+        if (user.otpExpiry < Date.now()) return res.status(400).json({ error: "OTP expired" });
+
+        user.isVerified = true; // Mark only for reset flow
+        await user.save();
+
+        res.json({ message: "OTP verified successfully" });
+    } catch (err) {
+        console.error("Verify Reset OTP Error:", err);
+        res.status(500).json({ error: "Server error" });
+    }
+};
+
+// ==========================
+// RESET PASSWORD
+// ==========================
+const resetPassword = async (req, res) => {
+    const { email, newPassword } = req.body;
+    if (!email || !newPassword) return res.status(400).json({ error: "All fields are required" });
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        if (!user.isVerified) return res.status(400).json({ error: "OTP not verified" });
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedPassword;
+        user.otp = null;
+        user.otpExpiry = null;
+        user.isVerified = false;
+        await user.save();
+
+        res.json({ message: "Password reset successful" });
+    } catch (err) {
+        console.error("Reset Password Error:", err);
+        res.status(500).json({ error: "Server error" });
+    }
+};
+
+// Export all
+module.exports = {
+    registerUser,
+    verifyOtp,
+    loginUser,
+    forgotPassword,
+    verifyResetOtp,
+    resetPassword
+};
+
+module.exports = { registerUser, verifyOtp, loginUser,forgotPassword,verifyResetOtp,resetPassword };
