@@ -226,7 +226,97 @@ const forgotPassword = async (req, res) => {
             from: process.env.EMAIL,
             to: email,
             subject: 'Password Reset OTP - Smart Urban Farming System',
-            html: `<h2>Your password reset OTP is ${otp}</h2>`
+            html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OTP Email</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f7f7f7;
+        margin: 0;
+        padding: 0;
+    }
+    .email-container {
+        max-width: 420px;
+        margin: 40px auto;
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
+    }
+    .logo {
+        margin-bottom: 10px;
+    }
+    .logo img {
+        width: 70px;
+    }
+    .title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #0b8f27;
+        margin: 5px 0;
+    }
+    .divider {
+        border-top: 1px dashed #b8deb8;
+        margin: 10px 0;
+    }
+    .message {
+        font-size: 15px;
+        color: #555555;
+        font-weight: 550;
+        font-family: 'Roboto', Arial, sans-serif;
+        margin: 15px 0;
+    }
+    .otp-box {
+        background: #eaf7ea;
+        color: #0b8f27;
+        font-size: 28px;
+        font-weight: bold;
+        padding: 12px;
+        border-radius: 8px;
+        display: inline-block;
+        margin: 15px 0;
+    }
+    .note {
+        font-size: 13px;
+        color: #4d6f8b;
+        margin-top: 15px;
+    }
+    .footer {
+        margin-top: 20px;
+        font-size: 14px;
+        color: #0b8f27;
+        font-weight: bold;
+    }
+</style>
+</head>
+<body>
+
+<div class="email-container">
+    <div class="logo">
+        <img src="src="https://cdn-icons-png.flaticon.com/512/2909/2909769.png" alt="logo">
+    </div>
+    <div class="title">Smart Urban Farming <br>System</div>
+    <div class="divider"></div>
+    <div class="message">
+        Dear User,<br>
+        We received a request to reset your <br> password for your account.
+    </div>
+    <div class="otp-box">${otp}</div>
+    <div class="note">
+Please use this OTP to complete the password<br> reset process.
+Do not share this code with <br> anyone.
+    </div>
+    <div class="footer">
+        🌱 Thank you for using Smart Urban <br>Farming System!
+    </div>
+</div>
+</body>
+</html>`
         });
 
         res.json({ message: "OTP sent to your email" });
