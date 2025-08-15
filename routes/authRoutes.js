@@ -7,7 +7,7 @@ const {
   forgotPassword,
   verifyResetOtp,
   resetPassword,
-  getProfile
+  getProfile,
 } = require('../controllers/authController');
 
 // Existing routes

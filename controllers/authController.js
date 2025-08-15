@@ -416,7 +416,7 @@ module.exports = {
     forgotPassword,
     verifyResetOtp,
     resetPassword,
-    getProfile
+    getProfile,
 };
 
-module.exports = { registerUser, verifyOtp, loginUser,forgotPassword,verifyResetOtp,resetPassword,getProfile };
+module.exports = { registerUser, verifyOtp, loginUser,forgotPassword,verifyResetOtp,resetPassword,getProfile};
