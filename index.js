@@ -1,53 +1,63 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const authRoutes = require('./routes/authRoutes'); // ✅ ADD THIS LINE
+const authRoutes = require('./routes/authRoutes');
+const equipmentRoutes = require('./routes/equipmentRoutes'); // ✅ Equipment routes
 const nodemailer = require('nodemailer');
-const { text } = require('body-parser');
+require('dotenv').config();
+
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 6000;
 
 
+// ----------------- Mail Transporter -----------------
 const transporter = nodemailer.createTransport({
-  service:'gmail',
+  service: 'gmail',
   host: 'smtp.gmail.com',
-  secure:false,
+  secure: false,
   port: 587,
   auth: {
-    user: process.env.EMAIl,
-    pass: process.env.PASSWORD
+    user: process.env.EMAIL,   // ✅ Must match .env
+    pass: process.env.PASSWORD // ✅ Gmail App Password
   }
-})
-// Middleware
+});
+
+// ----------------- Middleware -----------------
 app.use(cors());
 app.use(express.json());
 
-// Sample Route
+// ----------------- Health Check -----------------
 app.get('/', (req, res) => {
-  res.send('Backend is working!');
+  res.send('✅ GrowHive Backend is working!');
 });
 
+// ----------------- Test Email Route -----------------
+app.get('/send-test-mail', async (req, res) => {
+  try {
+    const mailOptions = {
+      from: process.env.EMAIL,
+      to: process.env.TO_EMAIL,
+      subject: 'GrowHive Test Mail',
+      text: 'Your backend mail service is working!'
+    };
 
-const mailOption = {
-  from: process.env.EMAIL,
-  to: process.env.TO_EMAIL,
-  subject: 'Sending Email Using Node.js',
-  text: 'That was easy',
-}
-
-transporter.sendMail(mailOption, (error,info)=> {
-  if(error) {
-    console.log(error);
+    await transporter.sendMail(mailOptions);
+    res.json({ message: '✅ Test email sent successfully!' });
+  } catch (err) {
+    console.error('❌ Email Error:', err);
+    res.status(500).json({ error: '❌ Failed to send email' });
   }
-  else {
-    console.log('Email sent : ',info.response);
-  }
-})
-// ✅ Use auth routes (REGISTER YOUR ENDPOINTS)
-app.use('/api/auth', authRoutes);
+});
 
-// MongoDB connection
-mongoose.connect('mongodb+srv://GrowHive0999:GrowHive%400999@growhive.1966u6g.mongodb.net/growhive?retryWrites=true&w=majority&appName=GrowHive', {
+// ----------------- Routes -----------------
+app.use('/api/auth', authRoutes);           // Auth routes
+app.use('/api/equipment', equipmentRoutes); // Equipment routes
+
+
+
+
+// ----------------- MongoDB Connection -----------------
+mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
@@ -57,7 +67,8 @@ mongoose.connect('mongodb+srv://GrowHive0999:GrowHive%400999@growhive.1966u6g.mo
   process.exit(1);
 });
 
-// Start server
+// ----------------- Start Server -----------------
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
 });
+
