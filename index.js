@@ -9,7 +9,6 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 6000;
 
-
 // ----------------- Mail Transporter -----------------
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -25,6 +24,9 @@ const transporter = nodemailer.createTransport({
 // ----------------- Middleware -----------------
 app.use(cors());
 app.use(express.json());
+
+// ✅ Make uploads folder public (important for images)
+app.use("/uploads", express.static("uploads"));
 
 // ----------------- Health Check -----------------
 app.get('/', (req, res) => {
@@ -53,9 +55,6 @@ app.get('/send-test-mail', async (req, res) => {
 app.use('/api/auth', authRoutes);           // Auth routes
 app.use('/api/equipment', equipmentRoutes); // Equipment routes
 
-
-
-
 // ----------------- MongoDB Connection -----------------
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
@@ -71,4 +70,3 @@ mongoose.connect(process.env.MONGO_URI, {
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
 });
-

@@ -1,12 +1,18 @@
 const Equipment = require("../models/Equipment");
 
-// ➕ Add new equipment (Owner only)
+// ➕ Add new equipment (Owner only, with image upload)
 exports.addEquipment = async (req, res) => {
   try {
-    const { name, imageUrl, location, capacity, price } = req.body;
+    const { name, location, capacity, price } = req.body;
 
     if (!name || !location || !price) {
       return res.status(400).json({ error: "Name, location, and price are required" });
+    }
+
+    // ✅ Check if file uploaded
+    let imageUrl = "";
+    if (req.file) {
+      imageUrl = `/uploads/${req.file.filename}`; // local upload path
     }
 
     const equipment = new Equipment({
@@ -15,7 +21,7 @@ exports.addEquipment = async (req, res) => {
       location,
       capacity,
       price,
-      ownerId: req.user._id
+      ownerId: req.user._id,
     });
 
     await equipment.save();
@@ -38,6 +44,7 @@ exports.getNearbyEquipment = async (req, res) => {
 
     res.json(equipments);
   } catch (err) {
+    console.error("Nearby Equipment Error:", err);
     res.status(500).json({ error: "Server error" });
   }
 };
@@ -51,6 +58,7 @@ exports.getTopRatedEquipment = async (req, res) => {
 
     res.json(equipments);
   } catch (err) {
+    console.error("Top Rated Error:", err);
     res.status(500).json({ error: "Server error" });
   }
 };
@@ -84,6 +92,7 @@ exports.seedEquipment = async (req, res) => {
     await Equipment.insertMany(sampleData);
     res.json({ message: "Sample equipment inserted" });
   } catch (err) {
+    console.error("Seed Error:", err);
     res.status(500).json({ error: "Failed to seed data" });
   }
 };
