@@ -1,149 +1,83 @@
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
+const axios = require('axios');
 const crypto = require('crypto');
-const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
-// Nodemailer Transporter
+// ✅ Nodemailer Transporter (used only for Forgot Password)
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
-    secure: false, // TLS
+    secure: false,
     auth: {
-        user: process.env.EMAIL, // Gmail
-        pass: process.env.PASSWORD // Gmail App Password
+        user: process.env.EMAIL,
+        pass: process.env.PASSWORD
     }
 });
 
-// Generate OTP
+// Generate 6-digit OTP
 function generateOTP() {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// ✅ Register user and send OTP
+// ✅ Register User (Phone-based OTP via TextBee.dev)
 const registerUser = async (req, res) => {
-    const { firstName, lastName, email, password, userType } = req.body;
+    const { firstName, lastName, email, phone, password, userType } = req.body;
 
-    if (!firstName || !lastName || !email || !password || !userType) {
+    if (!firstName || !lastName || !email || !phone || !password || !userType) {
         return res.status(400).json({ error: "All fields are required" });
     }
 
     try {
-        // Check existing user
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return res.status(409).json({ error: "Email already registered" });
+        // Check if phone number is already registered
+        const existingUser = await User.findOne({ phone });
+        if (existingUser && existingUser.isVerified) {
+            return res.status(409).json({ error: "Phone number already registered" });
         }
 
-        // Hash password
+        // Hash password and generate OTP
         const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Generate OTP
         const otp = generateOTP();
 
-       await transporter.sendMail({
-    from: process.env.EMAIL,
-    to: email,
-    subject: 'Smart Urban Farming System - OTP Verification',
-    html: `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Email OTP - Smart Urban Farming System</title>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                margin: 0;
-                color: #333;
-                background: linear-gradient(135deg, #a8e6cf, #dcedc1);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                height: 100vh;
-            }
-            .container {
-                max-width: 500px;
-                border-radius: 15px;
-                background-color: #fff;
-                padding: 25px;
-                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-                animation: fadeIn 1s ease-in-out;
-                text-align: center;
-                transition: transform 0.3s ease;
-            }
-            .container:hover { transform: scale(1.02); }
-            .logo {
-                display: block;
-                margin: auto;
-                width: 90px;
-                height: 90px;
-                border-radius: 50%;
-                background-color: #e8f5e9;
-                padding: 10px;
-            }
-            h1 { color: #2e7d32; font-size: 26px; margin: 15px 0; }
-            .line { border-top: 2px dashed #a5d6a7; margin: 15px 0 25px 0; }
-            p { font-size: 16px; margin: 8px 0; }
-            .otp {
-                background-color: #e8f5e9;
-                display: inline-block;
-                padding: 15px 30px;
-                font-size: 36px;
-                font-weight: bold;
-                color: #1b5e20;
-                letter-spacing: 5px;
-                border-radius: 10px;
-                box-shadow: inset 0 0 10px rgba(46, 125, 50, 0.2);
-                animation: pulse 1.5s infinite;
-            }
-            .note { font-size: 14px; color: #777; margin-top: 15px; }
-            .thank { margin-top: 20px; font-weight: bold; font-size: 16px; color: #388e3c; }
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(-20px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-            @keyframes pulse {
-                0% { transform: scale(1); }
-                50% { transform: scale(1.05); }
-                100% { transform: scale(1); }
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <img src="https://cdn-icons-png.flaticon.com/512/2909/2909769.png" alt="App Logo" class="logo">
-            <h1>Smart Urban Farming System</h1>
-            <div class="line"></div>
-            <p>Dear User,</p>
-            <p>Welcome to <strong>Smart Urban Farming System</strong> — your partner in modern and sustainable farming solutions.</p>
-            <p>To proceed further in the application, please enter the following One-Time Password (OTP):</p>
-            <div class="otp">${otp}</div>
-            <p class="note">Please use this OTP to complete your login process. Do not share this code with anyone.</p>
-            <p class="thank">🌱 Thank you for choosing Smart Urban Farming System! 🌱</p>
-        </div>
-    </body>
-    </html>
-    `
-});
-
-
-        // Save user with OTP & expiry
         const newUser = new User({
             firstName,
             lastName,
             email,
+            phone,
             password: hashedPassword,
             userType,
             otp,
-            otpExpiry: Date.now() + 5 * 60 * 1000 // 5 minutes
+            otpExpiry: Date.now() + 5 * 60 * 1000
         });
 
         await newUser.save();
 
+        // ✅ Send OTP via TextBee.dev
+        try {
+            await axios.post(
+                `https://api.textbee.dev/api/v1/gateway/devices/${process.env.DEVICE_ID}/send-sms`,
+                {
+                    recipients: [phone.startsWith('+') ? phone : `+91${phone}`],
+                    message: `ayush ${otp}`,
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': process.env.TEXTBEE_API_KEY,
+                    },
+                }
+            );
+            console.log(`✅ OTP ${otp} sent successfully to ${phone}`);
+        } catch (smsError) {
+            console.error("❌ Failed to send OTP via TextBee:", smsError.response?.data || smsError.message);
+            return res.status(500).json({ error: "Failed to send OTP to phone number" });
+        }
+
         res.status(201).json({
-            message: "OTP sent to your email. Please verify to continue.",
-            email: newUser.email
+            message: "OTP sent to your phone. Please verify to continue.",
+            phone: newUser.phone
         });
 
     } catch (err) {
@@ -152,17 +86,16 @@ const registerUser = async (req, res) => {
     }
 };
 
-// ✅ Verify OTP
+// ✅ Verify OTP (Phone-based)
 const verifyOtp = async (req, res) => {
-    const { email, otp } = req.body;
+    const { phone, otp } = req.body;
 
-    if (!email || !otp) {
-        return res.status(400).json({ error: 'Email and OTP are required' });
+    if (!phone || !otp) {
+        return res.status(400).json({ error: 'Phone number and OTP are required' });
     }
 
     try {
-        const user = await User.findOne({ email });
-
+        const user = await User.findOne({ phone });
         if (!user) return res.status(404).json({ error: 'User not found' });
         if (user.isVerified) return res.status(400).json({ error: 'User already verified' });
         if (user.otp !== otp) return res.status(401).json({ error: 'Invalid OTP' });
@@ -173,39 +106,35 @@ const verifyOtp = async (req, res) => {
         user.otpExpiry = null;
         await user.save();
 
-        res.status(200).json({ message: 'Email verified successfully' });
-
+        res.status(200).json({ message: 'Phone number verified successfully!' });
     } catch (err) {
         console.error('OTP Verification Error:', err);
         res.status(500).json({ error: 'Server error during verification' });
     }
 };
 
-// ✅ Login user
-
-
+// ✅ Login User
 const loginUser = async (req, res) => {
-  const { email, password } = req.body;
+    const { email, password } = req.body;
 
-  try {
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ error: "User not found" });
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ error: "User not found" });
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ error: "Incorrect Password" });
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) return res.status(400).json({ error: "Incorrect Password" });
 
-    // Generate JWT
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: '7d' // valid for 7 days
-    });
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+            expiresIn: '7d'
+        });
 
-    res.json({ token, user });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+        res.json({ token, user });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 };
 
-// Forgot password - send OTP
+// ✅ Forgot Password (Email-based)
 const forgotPassword = async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: "Email is required" });
@@ -222,98 +151,15 @@ const forgotPassword = async (req, res) => {
         await transporter.sendMail({
             from: process.env.EMAIL,
             to: email,
-            subject: 'Password Reset OTP - Smart Urban Farming System',
-            html: `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OTP Email</title>
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        background-color: #f7f7f7;
-        margin: 0;
-        padding: 0;
-    }
-    .email-container {
-        max-width: 420px;
-        margin: 40px auto;
-        background: #ffffff;
-        border-radius: 12px;
-        padding: 20px;
-        text-align: center;
-        box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
-    }
-    .logo {
-        margin-bottom: 10px;
-    }
-    .logo img {
-        width: 70px;
-    }
-    .title {
-        font-size: 20px;
-        font-weight: bold;
-        color: #0b8f27;
-        margin: 5px 0;
-    }
-    .divider {
-        border-top: 1px dashed #b8deb8;
-        margin: 10px 0;
-    }
-    .message {
-        font-size: 15px;
-        color: #555555;
-        font-weight: 550;
-        font-family: 'Roboto', Arial, sans-serif;
-        margin: 15px 0;
-    }
-    .otp-box {
-        background: #eaf7ea;
-        color: #0b8f27;
-        font-size: 28px;
-        font-weight: bold;
-        padding: 12px;
-        border-radius: 8px;
-        display: inline-block;
-        margin: 15px 0;
-    }
-    .note {
-        font-size: 13px;
-        color: #4d6f8b;
-        margin-top: 15px;
-    }
-    .footer {
-        margin-top: 20px;
-        font-size: 14px;
-        color: #0b8f27;
-        font-weight: bold;
-    }
-</style>
-</head>
-<body>
-
-<div class="email-container">
-    <div class="logo">
-        <img src="https://cdn-icons-png.flaticon.com/512/2909/2909769.png" alt="logo">
-    </div>
-    <div class="title">Smart Urban Farming <br>System</div>
-    <div class="divider"></div>
-    <div class="message">
-        Dear User,<br>
-        We received a request to reset your <br> password for your account.
-    </div>
-    <div class="otp-box">${otp}</div>
-    <div class="note">
-Please use this OTP to complete the password<br> reset process.
-Do not share this code with <br> anyone.
-    </div>
-    <div class="footer">
-        🌱 Thank you for using Smart Urban <br>Farming System!
-    </div>
-</div>
-</body>
-</html>`
+            subject: 'Password Reset OTP - GrowHive',
+            html: `
+                <div style="font-family: Arial, sans-serif; text-align: center;">
+                    <h2>GrowHive App</h2>
+                    <p>Your OTP for password reset is:</p>
+                    <h1 style="color: green;">${otp}</h1>
+                    <p>Please use this OTP within 5 minutes. Do not share it with anyone.</p>
+                </div>
+            `
         });
 
         res.json({ message: "OTP sent to your email" });
@@ -323,8 +169,7 @@ Do not share this code with <br> anyone.
     }
 };
 
-// Verify reset OTP
-
+// ✅ Verify Reset OTP
 const verifyResetOtp = async (req, res) => {
     const { email, otp } = req.body;
     if (!email || !otp) return res.status(400).json({ error: "Email and OTP are required" });
@@ -336,7 +181,7 @@ const verifyResetOtp = async (req, res) => {
         if (user.otp !== otp) return res.status(400).json({ error: "Invalid OTP" });
         if (user.otpExpiry < Date.now()) return res.status(400).json({ error: "OTP expired" });
 
-        user.isVerified = true; // Mark only for reset flow
+        user.isVerified = true;
         await user.save();
 
         res.json({ message: "OTP verified successfully" });
@@ -346,9 +191,7 @@ const verifyResetOtp = async (req, res) => {
     }
 };
 
-
-// Reset password
-
+// ✅ Reset Password
 const resetPassword = async (req, res) => {
     const { email, newPassword } = req.body;
     if (!email || !newPassword) return res.status(400).json({ error: "All fields are required" });
@@ -373,24 +216,17 @@ const resetPassword = async (req, res) => {
     }
 };
 
-
-
-// users profile (Authenticated)
-
+// ✅ User Profile
 const getProfile = async (req, res) => {
     try {
-        // Extract token from Authorization header
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
             return res.status(401).json({ error: "Authorization token missing or invalid" });
         }
 
         const token = authHeader.split(" ")[1];
-
-        // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        // Find user by decoded id
         const user = await User.findById(decoded.id).select("-password -otp -otpExpiry");
         if (!user) {
             return res.status(404).json({ error: "User not found" });
@@ -403,8 +239,6 @@ const getProfile = async (req, res) => {
     }
 };
 
-
-// Export all
 module.exports = {
     registerUser,
     verifyOtp,
@@ -414,5 +248,3 @@ module.exports = {
     resetPassword,
     getProfile,
 };
-
-module.exports = { registerUser, verifyOtp, loginUser,forgotPassword,verifyResetOtp,resetPassword,getProfile};
