@@ -239,6 +239,41 @@ const getProfile = async (req, res) => {
     }
 };
 
+// ✅ Update Profile
+const updateProfile = async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return res.status(401).json({ error: "Authorization token missing or invalid" });
+        }
+
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        const { firstName, lastName, email, phone } = req.body;
+
+        const updatedUser = await User.findByIdAndUpdate(
+            decoded.id,
+            { firstName, lastName, email, phone },
+            { new: true }
+        ).select("-password -otp -otpExpiry");
+
+        if (!updatedUser) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        res.json({
+            message: "Profile updated successfully",
+            user: updatedUser
+        });
+
+    } catch (error) {
+        console.error("Update Profile Error:", error);
+        res.status(500).json({ error: "Server error" });
+    }
+};
+
+
 module.exports = {
     registerUser,
     verifyOtp,
@@ -247,4 +282,5 @@ module.exports = {
     verifyResetOtp,
     resetPassword,
     getProfile,
+    updateProfile,
 };
