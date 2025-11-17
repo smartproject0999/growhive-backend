@@ -60,7 +60,7 @@ const registerUser = async (req, res) => {
                 `https://api.textbee.dev/api/v1/gateway/devices/${process.env.DEVICE_ID}/send-sms`,
                 {
                     recipients: [phone.startsWith('+') ? phone : `+91${phone}`],
-                    message: `ayush ${otp}`,
+                    message: `Your login request has been received. Please enter this 6-digit key ${otp} to continue. This key will expire shortly. `,
                 },
                 {
                     headers: {
