@@ -1,26 +1,40 @@
 const Equipment = require("../models/Equipment");
+const fs = require("fs");
+const cloudinary = require("../config/cloudinary"); // 👈 Correct path
 
 // ➕ Add new equipment (Owner only, with image upload)
 exports.addEquipment = async (req, res) => {
   try {
-    const { name, location, capacity, price } = req.body;
+    console.log("REQ FILE:", req.file); // 👈 Check if Multer got image
+
+    const { name, location, capacity, price, description } = req.body;
 
     if (!name || !location || !price) {
       return res.status(400).json({ error: "Name, location, and price are required" });
     }
 
-    // ✅ Check if file uploaded
     let imageUrl = "";
     if (req.file) {
-      imageUrl = `/uploads/${req.file.filename}`; // local upload path
+      console.log("Uploading to Cloudinary...");
+      const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+        folder: "equipment_images",
+      });
+      console.log("UPLOAD RESULT:", uploadResult);
+
+      imageUrl = uploadResult.secure_url;
+      fs.unlinkSync(req.file.path); // Clean temp file
+    } else {
+      return res.status(400).json({ error: "Image is required" });
     }
 
+    // Save to DB
     const equipment = new Equipment({
       name,
       imageUrl,
       location,
       capacity,
       price,
+      description,
       ownerId: req.user._id,
     });
 
@@ -31,6 +45,8 @@ exports.addEquipment = async (req, res) => {
     res.status(500).json({ error: "Failed to add equipment" });
   }
 };
+
+
 
 // 🌍 Get equipment by city
 exports.getNearbyEquipment = async (req, res) => {

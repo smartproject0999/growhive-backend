@@ -8,6 +8,7 @@ const {
   verifyResetOtp,
   resetPassword,
   getProfile,
+  updateProfile,
 } = require('../controllers/authController');
 
 // Existing routes
@@ -20,5 +21,7 @@ router.post('/forgot-password', forgotPassword);
 router.post('/verify-reset-otp', verifyResetOtp);
 router.post('/reset-password', resetPassword);
 router.get("/profile", getProfile);
+router.put("/profile/update", updateProfile);
+
 
 module.exports = router;
