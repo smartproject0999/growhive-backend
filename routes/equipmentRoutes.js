@@ -12,7 +12,7 @@ const { authMiddleware, requireRole } = require("../middleware/authMiddleware");
 // Store image temporarily in memory (not permanently in uploads/)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "temp/"); // temporary folder (you may create it)
+    cb(null, "tmp/"); // temporary folder (you may create it)
   },
   filename: (req, file, cb) => {
     cb(null, Date.now() + path.extname(file.originalname));
