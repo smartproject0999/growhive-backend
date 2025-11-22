@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -7,8 +9,22 @@ const nodemailer = require('nodemailer');
 const axios = require('axios');
 require('dotenv').config();
 
+
 const app = express();
 const PORT = process.env.PORT || 6000;
+
+
+
+
+const tempDir = path.join(process.cwd(), 'temp');
+
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir, { recursive: true });
+  console.log("📁 Temp folder created at:", tempDir);
+} else {
+  console.log("📁 Temp folder exists:", tempDir);
+}
+
 
 // ----------------- Email Transporter (For Forgot Password) -----------------
 const transporter = nodemailer.createTransport({
