@@ -130,3 +130,53 @@ exports.getAllEquipment = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch equipment list" });
   }
 };
+
+// 🟢 Get equipment listed by logged-in owner
+exports.getMyListedEquipments = async (req, res) => {
+  try {
+    const ownerId = req.user._id;
+
+    const equipments = await Equipment.find({ ownerId })
+      .populate("ownerId", "firstName lastName email phone");
+
+    return res.status(200).json({
+      success: true,
+      count: equipments.length,
+      equipments,
+    });
+  } catch (err) {
+    console.error("Fetch My Listed Equipments Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// ❌ Delete equipment (only if owner owns it)
+exports.deleteEquipment = async (req, res) => {
+  try {
+    const equipmentId = req.params.id;
+    const ownerId = req.user._id;
+
+    const equipment = await Equipment.findById(equipmentId);
+
+    if (!equipment) {
+      return res.status(404).json({ success: false, message: "Equipment not found" });
+    }
+
+    if (equipment.ownerId.toString() !== ownerId.toString()) {
+      return res.status(403).json({ success: false, message: "Unauthorized to delete" });
+    }
+
+    // Delete Cloudinary image (optional but recommended)
+    if (equipment.imageUrl) {
+      const publicId = equipment.imageUrl.split("/").slice(-1)[0].split(".")[0];
+      await cloudinary.uploader.destroy(`equipment_images/${publicId}`);
+    }
+
+    await equipment.deleteOne();
+
+    return res.status(200).json({ success: true, message: "Equipment deleted successfully" });
+  } catch (err) {
+    console.error("Delete Equipment Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};

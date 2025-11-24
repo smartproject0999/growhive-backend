@@ -45,4 +45,22 @@ router.post("/seed", authMiddleware, requireRole("owner"), equipmentController.s
 // all 
 router.get("/all", equipmentController.getAllEquipment);
 
+
+
+// 🗂 Get logged-in owner's listed equipment
+router.get(
+  "/my-listed",
+  authMiddleware,
+  requireRole("owner"),
+  equipmentController.getMyListedEquipments
+);
+
+// ❌ Delete equipment by ID (Owner only)
+router.delete(
+  "/delete/:id",
+  authMiddleware,
+  requireRole("owner"),
+  equipmentController.deleteEquipment
+);
+
 module.exports = router;
