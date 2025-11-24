@@ -12,4 +12,13 @@ const userSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false }
 });
 
+// Create virtual fullName field
+userSchema.virtual('fullName').get(function() {
+  return `${this.firstName} ${this.lastName}`;
+});
+
+// Enable virtuals when converting to JSON
+userSchema.set('toJSON', { virtuals: true });
+userSchema.set('toObject', { virtuals: true });
+
 module.exports = mongoose.model('User', userSchema);

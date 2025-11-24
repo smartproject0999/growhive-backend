@@ -38,17 +38,11 @@ router.post(
   equipmentController.addEquipment
 );
 
-router.post(
-  "/add",
-  upload.single("image"),
-  (req, res, next) => {
-    console.log("🧪 Multer File Received:", req.file);
-    next();
-  },
-  equipmentController.addEquipment
-);
 
 // 📦 Seed sample data (Owner only)
 router.post("/seed", authMiddleware, requireRole("owner"), equipmentController.seedEquipment);
+
+// all 
+router.get("/all", equipmentController.getAllEquipment);
 
 module.exports = router;

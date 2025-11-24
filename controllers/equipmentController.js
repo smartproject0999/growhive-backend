@@ -37,9 +37,13 @@ exports.addEquipment = async (req, res) => {
       description,
       ownerId: req.user._id,
     });
+await equipment.save();
 
-    await equipment.save();
-    res.status(201).json(equipment);
+  const fullEquipment = await Equipment.findById(equipment._id)
+  .populate('ownerId', 'firstName lastName email phone');
+
+
+res.status(201).json(fullEquipment);
   } catch (err) {
     console.error("Add Equipment Error:", err);
     res.status(500).json({ error: "Failed to add equipment" });
@@ -56,7 +60,8 @@ exports.getNearbyEquipment = async (req, res) => {
 
     const equipments = await Equipment.find({
       location: { $regex: city, $options: "i" }
-    }).limit(20);
+    })
+    .populate('ownerId', 'firstName lastName email phone')
 
     res.json(equipments);
   } catch (err) {
@@ -70,7 +75,7 @@ exports.getTopRatedEquipment = async (req, res) => {
   try {
     const equipments = await Equipment.find()
       .sort({ rating: -1, reviews: -1 })
-      .limit(20);
+      .populate('ownerId', 'firstName lastName email phone')
 
     res.json(equipments);
   } catch (err) {
@@ -110,5 +115,18 @@ exports.seedEquipment = async (req, res) => {
   } catch (err) {
     console.error("Seed Error:", err);
     res.status(500).json({ error: "Failed to seed data" });
+  }
+};
+
+// 📋 Get all equipment (with seller details)
+exports.getAllEquipment = async (req, res) => {
+  try {
+    const equipments = await Equipment.find()
+      .populate("ownerId", "firstName lastName email phone fullName");
+
+    res.status(200).json(equipments);
+  } catch (err) {
+    console.error("Get All Equipment Error:", err);
+    res.status(500).json({ error: "Failed to fetch equipment list" });
   }
 };
