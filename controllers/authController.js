@@ -134,13 +134,13 @@ const loginUser = async (req, res) => {
     }
 };
 
-// ✅ Forgot Password (Email-based)
+// ✅ Forgot Password 
 const forgotPassword = async (req, res) => {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ error: "Email is required" });
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ error: "Phone number is required" });
 
     try {
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ phone });
         if (!user) return res.status(404).json({ error: "User not found" });
 
         const otp = generateOTP();
@@ -148,21 +148,23 @@ const forgotPassword = async (req, res) => {
         user.otpExpiry = Date.now() + 5 * 60 * 1000;
         await user.save();
 
-        await transporter.sendMail({
-            from: process.env.EMAIL,
-            to: email,
-            subject: 'Password Reset OTP - GrowHive',
-            html: `
-                <div style="font-family: Arial, sans-serif; text-align: center;">
-                    <h2>GrowHive App</h2>
-                    <p>Your OTP for password reset is:</p>
-                    <h1 style="color: green;">${otp}</h1>
-                    <p>Please use this OTP within 5 minutes. Do not share it with anyone.</p>
-                </div>
-            `
-        });
+        // 📩 Send OTP via TextBee SMS
+        await axios.post(
+            `https://api.textbee.dev/api/v1/gateway/devices/${process.env.DEVICE_ID}/send-sms`,
+            {
+                recipients: [phone.startsWith('+') ? phone : `+91${phone}`],
+                message: `Your password reset OTP is ${otp}. It will expire in 5 minutes.`,
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': process.env.TEXTBEE_API_KEY,
+                },
+            }
+        );
 
-        res.json({ message: "OTP sent to your email" });
+        res.json({ message: "OTP sent to phone number" });
+
     } catch (err) {
         console.error("Forgot Password Error:", err);
         res.status(500).json({ error: "Server error" });
@@ -170,12 +172,13 @@ const forgotPassword = async (req, res) => {
 };
 
 // ✅ Verify Reset OTP
+
 const verifyResetOtp = async (req, res) => {
-    const { email, otp } = req.body;
-    if (!email || !otp) return res.status(400).json({ error: "Email and OTP are required" });
+    const { phone, otp } = req.body;
+    if (!phone || !otp) return res.status(400).json({ error: "Phone and OTP are required" });
 
     try {
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ phone });
         if (!user) return res.status(404).json({ error: "User not found" });
 
         if (user.otp !== otp) return res.status(400).json({ error: "Invalid OTP" });
@@ -191,13 +194,15 @@ const verifyResetOtp = async (req, res) => {
     }
 };
 
+
 // ✅ Reset Password
+
 const resetPassword = async (req, res) => {
-    const { email, newPassword } = req.body;
-    if (!email || !newPassword) return res.status(400).json({ error: "All fields are required" });
+    const { phone, newPassword } = req.body;
+    if (!phone || !newPassword) return res.status(400).json({ error: "All fields are required" });
 
     try {
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ phone });
         if (!user) return res.status(404).json({ error: "User not found" });
 
         if (!user.isVerified) return res.status(400).json({ error: "OTP not verified" });
@@ -215,6 +220,7 @@ const resetPassword = async (req, res) => {
         res.status(500).json({ error: "Server error" });
     }
 };
+
 
 // ✅ User Profile
 const getProfile = async (req, res) => {
