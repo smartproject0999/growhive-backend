@@ -279,6 +279,31 @@ const updateProfile = async (req, res) => {
     }
 };
 
+//  Delete Account (User can delete their own account)
+const deleteAccount = async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return res.status(401).json({ error: "Authorization token missing or invalid" });
+        }
+
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        const deletedUser = await User.findByIdAndDelete(decoded.id);
+
+        if (!deletedUser) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        res.json({ message: "Account deleted successfully" });
+    } catch (error) {
+        console.error("Delete Account Error:", error);
+        res.status(500).json({ error: "Server error" });
+    }
+};
+
+
 
 module.exports = {
     registerUser,
@@ -289,4 +314,5 @@ module.exports = {
     resetPassword,
     getProfile,
     updateProfile,
+    deleteAccount,
 };

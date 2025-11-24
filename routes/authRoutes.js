@@ -9,6 +9,7 @@ const {
   resetPassword,
   getProfile,
   updateProfile,
+   deleteAccount
 } = require('../controllers/authController');
 
 // Existing routes
@@ -22,6 +23,7 @@ router.post('/verify-reset-otp', verifyResetOtp);
 router.post('/reset-password', resetPassword);
 router.get("/profile", getProfile);
 router.put("/profile/update", updateProfile);
+router.delete("/delete-account", deleteAccount); 
 
 
 module.exports = router;
