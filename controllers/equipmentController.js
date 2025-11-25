@@ -7,10 +7,10 @@ exports.addEquipment = async (req, res) => {
   try {
     console.log("REQ FILE:", req.file); // 👈 Check if Multer got image
 
-    const { name, location, capacity, price, description } = req.body;
+    const { name, location, capacity, price, description,category } = req.body;
 
-    if (!name || !location || !price) {
-      return res.status(400).json({ error: "Name, location, and price are required" });
+    if (!name || !location || !price || !category) {
+      return res.status(400).json({ error: "Name, location, price and category are required" });
     }
 
     let imageUrl = "";
@@ -35,6 +35,7 @@ exports.addEquipment = async (req, res) => {
       capacity,
       price,
       description,
+      category,
       ownerId: req.user._id,
     });
 await equipment.save();
@@ -128,6 +129,24 @@ exports.getAllEquipment = async (req, res) => {
   } catch (err) {
     console.error("Get All Equipment Error:", err);
     res.status(500).json({ error: "Failed to fetch equipment list" });
+  }
+};
+// ⭐ Get equipment by category
+exports.getEquipmentByCategory = async (req, res) => {
+  try {
+    const { category } = req.params;
+
+    if (!category) {
+      return res.status(400).json({ error: "Category is required" });
+    }
+
+    const equipments = await Equipment.find({ category })
+      .populate("ownerId", "firstName lastName email phone");
+
+    res.json(equipments);
+  } catch (err) {
+    console.error("Category API Error:", err);
+    res.status(500).json({ error: "Failed to fetch equipment by category" });
   }
 };
 

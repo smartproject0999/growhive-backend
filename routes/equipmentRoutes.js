@@ -46,6 +46,7 @@ router.post("/seed", authMiddleware, requireRole("owner"), equipmentController.s
 router.get("/all", equipmentController.getAllEquipment);
 
 
+router.get("/category/:category", equipmentController.getEquipmentByCategory);
 
 // 🗂 Get logged-in owner's listed equipment
 router.get(
