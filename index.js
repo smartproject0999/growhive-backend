@@ -7,6 +7,7 @@ const authRoutes = require('./routes/authRoutes');
 const equipmentRoutes = require('./routes/equipmentRoutes');
 const nodemailer = require('nodemailer');
 const axios = require('axios');
+const reviewRoutes = require('./routes/reviewRoutes');
 require('dotenv').config();
 
 
@@ -137,3 +138,9 @@ mongoose.connect(process.env.MONGO_URI, {
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
 });
+
+
+// Review Api 
+app.use(express.json());
+app.use('/api', reviewRoutes);
+
