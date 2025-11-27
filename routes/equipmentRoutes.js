@@ -2,6 +2,10 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const path = require("path");
+const { updateEquipment } = require("../controllers/equipmentController");
+const authMiddleware = require("../middleware/authMiddleware");
+const upload = require("../middlewares/uploadMiddleware"); // Multer config
+
 // const upload = require("../middleware/multer");
 
 const equipmentController = require("../controllers/equipmentController");
@@ -64,4 +68,9 @@ router.delete(
   equipmentController.deleteEquipment
 );
 
+
+router.put("/update/:id", 
+  authMiddleware, 
+  upload.single("image"), 
+  updateEquipment);
 module.exports = router;
