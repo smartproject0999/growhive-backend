@@ -199,39 +199,3 @@ exports.deleteEquipment = async (req, res) => {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
-// Update Equipment
-
-
-exports.updateEquipment = async (req, res) => {
-  try {
-    const equipment = await Equipment.findById(req.params.id);
-    if (!equipment) return res.status(404).json({ message: "Equipment not found" });
-
-    // If an image was uploaded
-    if (req.file) {
-      // Delete old image from cloudinary (optional)
-      if (equipment.imagePublicId) {
-        await cloudinary.uploader.destroy(equipment.imagePublicId);
-      }
-
-      const uploadedImage = await cloudinary.uploader.upload(req.file.path, {
-        folder: "equipment_images",
-      });
-
-      req.body.image = uploadedImage.secure_url;
-      req.body.imagePublicId = uploadedImage.public_id;
-
-      fs.unlinkSync(req.file.path);
-    }
-
-    const updated = await Equipment.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
-
-    res.json({ message: "Equipment updated successfully", updated });
-  } catch (err) {
-    console.error("Update error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
