@@ -200,54 +200,38 @@ exports.deleteEquipment = async (req, res) => {
   }
 };
 // Update Equipment
+
+
 exports.updateEquipment = async (req, res) => {
   try {
-    const equipmentId = req.params.id;
-    const ownerId = req.user._id; // from auth middleware
+    const equipment = await Equipment.findById(req.params.id);
+    if (!equipment) return res.status(404).json({ message: "Equipment not found" });
 
-    // Find existing equipment
-    const equipment = await Equipment.findById(equipmentId);
-
-    if (!equipment) {
-      return res.status(404).json({ success: false, message: "Equipment not found" });
-    }
-
-    // Owner check
-    if (equipment.ownerId.toString() !== ownerId.toString()) {
-      return res.status(403).json({ success: false, message: "Unauthorized to update" });
-    }
-
-    // Update fields
-    equipment.name = req.body.name || equipment.name;
-    equipment.price = req.body.price || equipment.price;
-    equipment.capacity = req.body.capacity || equipment.capacity;
-    equipment.location = req.body.location || equipment.location;
-    equipment.description = req.body.description || equipment.description;
-
-    // 📸 Handle image update
+    // If an image was uploaded
     if (req.file) {
-      // Delete old image from Cloudinary (optional)
-      if (equipment.imageUrl) {
-        const publicId = equipment.imageUrl.split("/").slice(-1)[0].split(".")[0];
-        await cloudinary.uploader.destroy(`equipment_images/${publicId}`);
+      // Delete old image from cloudinary (optional)
+      if (equipment.imagePublicId) {
+        await cloudinary.uploader.destroy(equipment.imagePublicId);
       }
 
-      // Upload new image
-      const result = await cloudinary.uploader.upload(req.file.path, {
+      const uploadedImage = await cloudinary.uploader.upload(req.file.path, {
         folder: "equipment_images",
       });
-      equipment.imageUrl = result.secure_url;
+
+      req.body.image = uploadedImage.secure_url;
+      req.body.imagePublicId = uploadedImage.public_id;
+
+      fs.unlinkSync(req.file.path);
     }
 
-    await equipment.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Equipment updated successfully",
-      updatedEquipment: equipment,
+    const updated = await Equipment.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
     });
+
+    res.json({ message: "Equipment updated successfully", updated });
   } catch (err) {
-    console.error("Update Equipment Error:", err);
-    res.status(500).json({ success: false, message: "Server Error" });
+    console.error("Update error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
