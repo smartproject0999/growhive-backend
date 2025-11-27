@@ -63,5 +63,14 @@ router.delete(
   requireRole("owner"),
   equipmentController.deleteEquipment
 );
+// ✏️ Update equipment (Owner only, with optional image upload)
+router.put(
+  "/update/:id",
+  authMiddleware,
+  requireRole("owner"),
+  upload.single("image"),   // ⬅ allows sending new image (optional)
+  equipmentController.updateEquipment
+);
+
 
 module.exports = router;

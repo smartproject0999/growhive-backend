@@ -199,3 +199,59 @@ exports.deleteEquipment = async (req, res) => {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
+
+// ✏️ Update equipment (only owner can update)
+exports.updateEquipment = async (req, res) => {
+  try {
+    const equipmentId = req.params.id;
+    const ownerId = req.user._id;
+
+    // Check if equipment exists
+    let equipment = await Equipment.findById(equipmentId);
+    if (!equipment) {
+      return res.status(404).json({ success: false, message: "Equipment not found" });
+    }
+
+    // Check ownership
+    if (equipment.ownerId.toString() !== ownerId.toString()) {
+      return res.status(403).json({ success: false, message: "Unauthorized to update" });
+    }
+
+    // Update basic fields (only if provided)
+    const fieldsToUpdate = ["name", "price", "capacity", "location", "description"];
+    fieldsToUpdate.forEach((field) => {
+      if (req.body[field]) {
+        equipment[field] = req.body[field];
+      }
+    });
+
+    // 📸 If new image uploaded, update Cloudinary
+    if (req.file) {
+      // Delete old image from Cloudinary
+      if (equipment.imageUrl) {
+        const publicId = equipment.imageUrl.split("/").slice(-1)[0].split(".")[0];
+        await cloudinary.uploader.destroy(`equipment_images/${publicId}`);
+      }
+
+      // Upload new image
+      const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+        folder: "equipment_images",
+      });
+
+      fs.unlinkSync(req.file.path); // Clean local temp
+      equipment.imageUrl = uploadResult.secure_url; // Update new image
+    }
+
+    // Save changes
+    await equipment.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Equipment updated successfully",
+      updatedEquipment: equipment,
+    });
+  } catch (err) {
+    console.error("Update Equipment Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
