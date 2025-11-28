@@ -8,11 +8,13 @@ const equipmentRoutes = require('./routes/equipmentRoutes');
 const nodemailer = require('nodemailer');
 const axios = require('axios');
 const reviewRoutes = require('./routes/reviewRoutes');
+const bookingRoutes = require('./routes/bookingRoutes');
 require('dotenv').config();
 
 
 const app = express();
 const PORT = process.env.PORT || 6000;
+
 
 
 
@@ -144,3 +146,5 @@ app.listen(PORT, () => {
 app.use(express.json());
 app.use('/api', reviewRoutes);
 
+// Booking api
+app.use('/api/bookings', bookingRoutes);
