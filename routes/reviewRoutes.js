@@ -1,8 +1,10 @@
+
 const express = require('express');
 const router = express.Router();
-const { getReviews, addReview } = require('../controllers/reviewController');
+const { addReview, getReviews } = require('../controllers/reviewController');
+const { authMiddleware } = require('../middlewares/auth');
 
-router.get('/reviews/:equipmentId', getReviews);
-router.post('/reviews', addReview);
+router.post('/reviews', authMiddleware, addReview);      // POST review, user must be logged in
+router.get('/reviews/:equipmentId', getReviews);        // GET reviews, public
 
 module.exports = router;
