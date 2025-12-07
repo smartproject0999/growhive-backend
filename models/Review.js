@@ -1,8 +1,29 @@
-const express = require('express');
-const router = express.Router();
-const { getReviews, addReview } = require('../controllers/reviewController');
+const mongoose = require('mongoose');
 
-router.get('/reviews/:equipmentId', getReviews);
-router.post('/reviews', addReview);
+const reviewSchema = new mongoose.Schema({
+  equipmentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Equipment',
+    required: true
+  },
+  userName: {
+    type: String,
+    required: true
+  },
+  rating: {
+    type: Number,
+    min: 1,
+    max: 5,
+    required: true
+  },
+  review: {
+    type: String,
+    required: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
 
-module.exports = router;
+module.exports = mongoose.model('Review', reviewSchema);
