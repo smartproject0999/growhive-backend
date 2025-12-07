@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const path = require("path");
+const Equipment = require("../models/Equipment");
+
 // const upload = require("../middleware/multer");
 
 const equipmentController = require("../controllers/equipmentController");
@@ -71,6 +73,22 @@ router.put(
   upload.single("image"),   // ⬅ allows sending new image (optional)
   equipmentController.updateEquipment
 );
+
+// 🌍 filter city
+router.get("/city/:city", async (req, res) => {
+  try {
+    const city = req.params.city.trim();
+
+    const equipments = await Equipment.find({
+      location: { $regex: new RegExp(city, "i") }  // Case-insensitive match
+    });
+
+    res.status(200).json(equipments);
+  } catch (error) {
+    console.error("City API Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
 
 
 module.exports = router;
