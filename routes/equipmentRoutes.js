@@ -80,8 +80,10 @@ router.get("/city/:city", async (req, res) => {
     const city = req.params.city.trim();
 
     const equipments = await Equipment.find({
-      location: { $regex: new RegExp(city, "i") }  // Case-insensitive match
-    });
+      location: { $regex: new RegExp(city, "i")}  // Case-insensitive match
+    })
+    .populate("ownerId", "firstName lastName email phone");
+        
 
     res.status(200).json(equipments);
   } catch (error) {
