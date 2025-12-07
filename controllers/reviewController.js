@@ -15,23 +15,13 @@ exports.getReviews = async (req, res) => {
 // ➤ POST New Review
 exports.addReview = async (req, res) => {
   try {
-    const { equipmentId, rating, review } = req.body;
+    const { equipmentId, rating, review, userName } = req.body;
 
-    // ✅ Get user info from authMiddleware
-    const userName = req.user.name;    // name from token
-    const userId = req.user._id;       // optional, useful to prevent duplicate reviews
-
-    if (!equipmentId || !rating || !review) {
+    if (!equipmentId || !rating || !review || !userName) {
       return res.status(400).json({ error: "All fields are required" });
     }
 
-    // Optional: prevent duplicate reviews from same user
-    const existing = await Review.findOne({ equipmentId, userId });
-    if (existing) {
-      return res.status(400).json({ error: "You have already reviewed this equipment" });
-    }
-
-    const newReview = new Review({ equipmentId, rating, review, userName, userId });
+    const newReview = new Review({ equipmentId, rating, review, userName });
     await newReview.save();
 
     res.status(201).json({ message: "Review added successfully", review: newReview });
