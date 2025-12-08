@@ -26,6 +26,7 @@
     "mongoose": "^8.17.1",
     "multer": "^2.0.2",
     "multer-storage-cloudinary": "^4.0.0",
+    "node-cron": "^4.2.1",
     "nodemailer": "^7.0.5",
     "razorpay": "^2.9.6",
     "twilio": "^5.9.0"

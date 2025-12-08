@@ -10,6 +10,8 @@ const axios = require('axios');
 const reviewRoutes = require('./routes/reviewRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const paymentsRotes = require('./routes/paymentsRoutes');
+const cron = require("node-cron");
+const Booking = require("./models/Booking");
 require('dotenv').config();
 
 
@@ -152,3 +154,19 @@ app.use('/api/bookings', bookingRoutes);
 
 // Payment api 
 app.use("/payments",paymentsRotes);
+
+
+// 🔥 CRON JOB: Runs every night at 12:00 AM
+cron.schedule("0 0 * * *", async () => {
+  try {
+    const now = new Date();
+
+    const result = await Booking.deleteMany({
+      endDate: { $lt: now }
+    });
+
+    console.log(`🗑️ Auto-delete completed: ${result.deletedCount} old bookings removed`);
+  } catch (err) {
+    console.error("❌ Cron job error:", err);
+  }
+});
