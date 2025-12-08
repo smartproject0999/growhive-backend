@@ -1,16 +1,20 @@
 const express = require('express');
 const router = express.Router();
 const {
-  createBooking,
+  // createBooking,
   getUserBookings,
   getOwnerBookings,
-  updateBookingStatus
+  updateBookingStatus,
+  checkAvailability,             
+  createBookingAfterPayment 
 } = require('../controllers/bookingController');
 
 // 📌 Routes
-router.post('/create', createBooking);
+// router.post('/create', createBooking);
 router.get('/user/:userId', getUserBookings);
 router.get('/owner/:ownerId', getOwnerBookings);
 router.put('/status/:id', updateBookingStatus);
+router.post('/check-availability', checkAvailability);
+router.post('/create-after-payment', createBookingAfterPayment);
 
 module.exports = router;

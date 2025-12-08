@@ -1,43 +1,81 @@
+// bookingController.js (add these handlers; keep your existing ones too)
 const Booking = require("../models/Booking");
+const mongoose = require("mongoose");
 
-exports.createBooking = async (req, res) => {
+// 1) Check availability
+exports.checkAvailability = async (req, res) => {
   try {
-    const { equipmentId, userId, startDate, endDate, totalPrice, notes } = req.body;
-
-    // 1⃣ Validate input
-    if (!equipmentId || !userId || !startDate || !endDate || !totalPrice) {
+    const { equipmentId, startDate, endDate } = req.body;
+    if (!equipmentId || !startDate || !endDate) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // 2⃣ Prevent double booking
+    const s = new Date(startDate);
+    const e = new Date(endDate);
+
     const existingBooking = await Booking.findOne({
       equipmentId,
-      startDate: { $lte: endDate },
-      endDate: { $gte: startDate },
+      startDate: { $lte: e },
+      endDate: { $gte: s },
       status: { $ne: "Cancelled" }
     });
 
     if (existingBooking) {
-      return res.status(400).json({ message: "Equipment already booked for these dates" });
+      return res.status(200).json({ available: false, message: "Not available for selected dates." });
     }
 
-    // 3⃣ Create booking
-    const newBooking = await Booking.create({
-      equipmentId,
-      userId,
-      startDate,
-      endDate,
-      totalPrice,
-      notes,
-      status: "Pending"
-    });
-
-    res.status(201).json({ message: "Booking successful", booking: newBooking });
+    // if you want, compute price server-side (example placeholder)
+    // const totalPrice = computePrice(equipmentId, s, e);
+    // for now assume client passed totalPrice or server returns a calculated value
+    return res.status(200).json({ available: true, message: "Equipment available" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 };
 
+// 2) Create booking AFTER successful payment (idempotent-ish)
+exports.createBookingAfterPayment = async (req, res) => {
+  try {
+    const { equipmentId, userId, startDate, endDate, totalPrice, notes, paymentId, paymentMethod } = req.body;
+
+    if (!equipmentId || !userId || !startDate || !endDate || !totalPrice || !paymentId) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const s = new Date(startDate);
+    const e = new Date(endDate);
+
+    // Double-check availability again (important)
+    const existingBooking = await Booking.findOne({
+      equipmentId,
+      startDate: { $lte: e },
+      endDate: { $gte: s },
+      status: { $ne: "Cancelled" }
+    });
+
+    if (existingBooking) {
+      // NOTE: you might want to issue refund here since payment already took place.
+      return res.status(400).json({ message: "Equipment already booked for these dates (post-payment). Please request refund." });
+    }
+
+    const newBooking = await Booking.create({
+      equipmentId,
+      userId,
+      startDate: s,
+      endDate: e,
+      totalPrice,
+      notes,
+      paymentId,
+      paymentMethod,
+      paymentStatus: "Paid",
+      status: "Confirmed"
+    });
+
+    return res.status(201).json({ message: "Booking created", booking: newBooking });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
 
 // 📌 Get bookings by User (for user history)
 exports.getUserBookings = async (req, res) => {

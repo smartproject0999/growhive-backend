@@ -9,6 +9,7 @@ const nodemailer = require('nodemailer');
 const axios = require('axios');
 const reviewRoutes = require('./routes/reviewRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
+const paymentsRotes = require('./routes/paymentsRoutes');
 require('dotenv').config();
 
 
@@ -148,3 +149,6 @@ app.use('/api', reviewRoutes);
 
 // Booking api
 app.use('/api/bookings', bookingRoutes);
+
+// Payment api 
+app.use("/payments",paymentsRotes);

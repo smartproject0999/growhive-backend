@@ -1,3 +1,4 @@
+// Booking.js — extended with payment info (replace your current file)
 const mongoose = require("mongoose");
 
 const bookingSchema = new mongoose.Schema({
@@ -15,9 +16,20 @@ const bookingSchema = new mongoose.Schema({
   endDate: { type: Date, required: true },
   totalPrice: { type: Number, required: true },
   notes: { type: String },
+
+  // payment fields
+  paymentId: { type: String },         // gateway payment id
+  paymentMethod: { type: String },     // e.g. razorpay
+  paymentStatus: {                     // info from gateway
+    type: String,
+    enum: ["Pending", "Paid", "Failed", "Refunded"],
+    default: "Pending",
+  },
+
+  // booking status (keeps existing states)
   status: {
     type: String,
-    enum: ["Pending", "Approved", "Completed", "Cancelled"],
+    enum: ["Pending", "Confirmed", "Completed", "Cancelled"],
     default: "Pending",
   },
 }, { timestamps: true });
