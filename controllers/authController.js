@@ -6,6 +6,29 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+// login SMS Alert
+async function sendSMS(phone, message) {
+    try {
+        await axios.post(
+            `https://api.textbee.dev/api/v1/gateway/devices/${process.env.DEVICE_ID}/send-sms`,
+            {
+                recipients: [phone.startsWith('+') ? phone : `+91${phone}`],
+                message: message,
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': process.env.TEXTBEE_API_KEY,
+                },
+            }
+        );
+
+        console.log("📩 SMS sent to", phone);
+    } catch (error) {
+        console.error("❌ Failed to send SMS:", error.response?.data || error.message);
+    }
+}
+
 // ✅ Nodemailer Transporter (used only for Forgot Password)
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
@@ -127,6 +150,11 @@ const loginUser = async (req, res) => {
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
             expiresIn: '7d'
         });
+
+        sendSMS(
+            user.phone,
+            `Your GrowHive account was just logged in successfully. If this wasn't you, please reset your password immediately.`
+        );
 
         res.json({ token, user });
     } catch (err) {
