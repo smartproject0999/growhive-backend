@@ -12,6 +12,7 @@ const bookingRoutes = require('./routes/bookingRoutes');
 const paymentsRotes = require('./routes/paymentsRoutes');
 const cron = require("node-cron");
 const Booking = require("./models/Booking");
+const paymentHistory = require("./routes/paymentHistoryRoutes");
 require('dotenv').config();
 
 
@@ -154,6 +155,11 @@ app.use('/api/bookings', bookingRoutes);
 
 // Payment api 
 app.use("/payments",paymentsRotes);
+
+
+// paymentHistory api 
+app.use("/payment-history", paymentHistory);
+
 
 
 // 🔥 CRON JOB: Runs every night at 12:00 AM
