@@ -2,6 +2,28 @@
 const Booking = require("../models/Booking");
 const mongoose = require("mongoose");
 
+async function sendSMS(phone, message) {
+    try {
+        await axios.post(
+            `https://api.textbee.dev/api/v1/gateway/devices/${process.env.DEVICE_ID}/send-sms`,
+            {
+                recipients: [phone.startsWith('+') ? phone : `+91${phone}`],
+                message: message,
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': process.env.TEXTBEE_API_KEY,
+                },
+            }
+        );
+
+        console.log("📩 SMS sent to", phone);
+    } catch (error) {
+        console.error("❌ Failed to send SMS:", error.response?.data || error.message);
+    }
+}
+
 // 1) Check availability
 exports.checkAvailability = async (req, res) => {
   try {
@@ -70,6 +92,10 @@ exports.createBookingAfterPayment = async (req, res) => {
       paymentStatus: "Paid",
       status: "Confirmed"
     });
+    sendSMS(
+            user.phone,
+            `Your GrowHive equiment in successfully Booked.`
+        );
 
     return res.status(201).json({ message: "Booking created", booking: newBooking });
   } catch (err) {
