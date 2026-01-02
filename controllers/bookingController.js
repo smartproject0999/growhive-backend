@@ -1,28 +1,7 @@
 // bookingController.js (add these handlers; keep your existing ones too)
 const Booking = require("../models/Booking");
 const mongoose = require("mongoose");
-
-async function sendSMS(phone, message) {
-    try {
-        await axios.post(
-            `https://api.textbee.dev/api/v1/gateway/devices/${process.env.DEVICE_ID}/send-sms`,
-            {
-                recipients: [phone.startsWith('+') ? phone : `+91${phone}`],
-                message: message,
-            },
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': process.env.TEXTBEE_API_KEY,
-                },
-            }
-        );
-
-        console.log("📩 SMS sent to", phone);
-    } catch (error) {
-        console.error("❌ Failed to send SMS:", error.response?.data || error.message);
-    }
-}
+const equipment = await Equipment.findById(equipmentId);
 
 // 1) Check availability
 exports.checkAvailability = async (req, res) => {
@@ -83,6 +62,7 @@ exports.createBookingAfterPayment = async (req, res) => {
     const newBooking = await Booking.create({
       equipmentId,
       userId,
+      equipmentOwnerId: equipment.ownerId,
       startDate: s,
       endDate: e,
       totalPrice,
@@ -92,10 +72,6 @@ exports.createBookingAfterPayment = async (req, res) => {
       paymentStatus: "Paid",
       status: "Confirmed"
     });
-    sendSMS(
-            user.phone,
-            `Your GrowHive equiment in successfully Booked.`
-        );
 
     return res.status(201).json({ message: "Booking created", booking: newBooking });
   } catch (err) {
@@ -118,14 +94,13 @@ exports.getUserBookings = async (req, res) => {
 // 📌 Get bookings by Equipment Owner (owner dashboard)
 exports.getOwnerBookings = async (req, res) => {
   try {
-    const bookings = await Booking.find()
-      .populate({
-        path: "equipmentId",
-        match: { ownerId: req.params.ownerId }
-      })
-      .populate("userId");
-      
-    res.json(bookings.filter(b => b.equipmentId !== null));
+    const bookings = await Booking.find({
+      equipmentOwnerId: req.params.ownerId
+    })
+      .populate("equipmentId", "name imageUrl location price")
+      .populate("userId", "name phone location");
+
+    res.json(bookings);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
