@@ -1,6 +1,8 @@
 // bookingController.js (add these handlers; keep your existing ones too)
 const Booking = require("../models/Booking");
 const mongoose = require("mongoose");
+const Equipment = require("../models/Equipment");
+
 
 
 // 1) Check availability
@@ -43,6 +45,11 @@ exports.createBookingAfterPayment = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
+     const equipment = await Equipment.findById(equipmentId);
+    if (!equipment) {
+      return res.status(404).json({ message: "Equipment not found" });
+    }
+
     const s = new Date(startDate);
     const e = new Date(endDate);
 
@@ -58,7 +65,7 @@ exports.createBookingAfterPayment = async (req, res) => {
       // NOTE: you might want to issue refund here since payment already took place.
       return res.status(400).json({ message: "Equipment already booked for these dates (post-payment). Please request refund." });
     }
-    const equipment = await Equipment.findById(equipmentId);
+    // const equipment = await Equipment.findById(equipmentId);
     const newBooking = await Booking.create({
       equipmentId,
       userId,
