@@ -84,7 +84,7 @@ exports.createBookingAfterPayment = async (req, res) => {
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
-};
+}; 
 
 // 📌 Get bookings by User (for user history)
 exports.getUserBookings = async (req, res) => {
@@ -105,7 +105,7 @@ exports.getOwnerBookings = async (req, res) => {
       equipmentOwnerId: req.params.ownerId
     })
       .populate("equipmentId", "name imageUrl location price")
-      .populate("userId", "name phone location");
+      .populate("userId", "firstName lastName phone location");
 
     res.json(bookings);
   } catch (error) {
