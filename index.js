@@ -13,6 +13,7 @@ const paymentsRotes = require('./routes/paymentsRoutes');
 const cron = require("node-cron");
 const Booking = require("./models/Booking");
 require('dotenv').config();
+require("./cronJobs/bookingCleanup");
 
 
 const app = express();
