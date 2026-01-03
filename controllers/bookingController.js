@@ -2,7 +2,8 @@
 const Booking = require("../models/Booking");
 const mongoose = require("mongoose");
 const Equipment = require("../models/Equipment");
-
+const Completed = require("../models/CompletedBooking");
+const CompletedBooking = require("../models/CompletedBooking");
 
 
 // 1) Check availability
@@ -92,6 +93,16 @@ exports.getUserBookings = async (req, res) => {
     const bookings = await Booking.find({ userId: req.params.userId })
       .populate("equipmentId userId");
     res.json(bookings);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getPayment = async (req, res) => {
+  try {
+    const Completed = await CompletedBooking.find({ userId: req.params.userId })
+      .populate("equipmentId userId");
+    res.json(Completed);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   // createBooking,
+  getPayment,
   getUserBookings,
   getOwnerBookings,
   updateBookingStatus,
@@ -11,6 +12,7 @@ const {
 
 // 📌 Routes
 // router.post('/create', createBooking);
+router.get('/user/:userId', getPayment);
 router.get('/user/:userId', getUserBookings);
 router.get('/owner/:ownerId', getOwnerBookings);
 router.put('/status/:id', updateBookingStatus);
