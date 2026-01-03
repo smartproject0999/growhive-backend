@@ -12,7 +12,7 @@ const {
 
 // 📌 Routes
 // router.post('/create', createBooking);
-router.get('/user/:userId', getPayment);
+router.get('/payment/:userId', getPayment);
 router.get('/user/:userId', getUserBookings);
 router.get('/owner/:ownerId', getOwnerBookings);
 router.put('/status/:id', updateBookingStatus);
