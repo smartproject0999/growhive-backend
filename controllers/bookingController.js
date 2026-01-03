@@ -14,12 +14,7 @@ exports.checkAvailability = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // 🚫 BLOCK OWNER BOOKING OWN EQUIPMENT
-    if (equipment.ownerId.toString() === userId.toString()) {
-      return res.status(403).json({
-        message: "You cannot rent your own equipment"
-      });
-    } 
+
     
     const s = new Date(startDate);
     const e = new Date(endDate);
@@ -58,6 +53,12 @@ exports.createBookingAfterPayment = async (req, res) => {
       return res.status(404).json({ message: "Equipment not found" });
     }
 
+    // 🚫 BLOCK OWNER BOOKING OWN EQUIPMENT
+    if (equipment.ownerId.toString() === userId.toString()) {
+      return res.status(403).json({
+        message: "You cannot rent your own equipment"
+      });
+    } 
     
     
 
