@@ -185,3 +185,13 @@ exports.getOwnerIncome = async (req, res) => {
     res.status(500).json({ message: "Error fetching income" });
   }
 };
+
+module.exports = {
+  checkAvailability,
+  createBookingAfterPayment,
+  getUserBookings,
+  getPayment,
+  getOwnerBookings,
+  updateBookingStatus,
+  getOwnerIncome   // ✅ include the new function here
+};
