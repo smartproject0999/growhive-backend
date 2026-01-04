@@ -164,3 +164,24 @@ exports.updateBookingStatus = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// 📌 Get total income for an owner
+exports.getOwnerIncome = async (req, res) => {
+  try {
+    const ownerId = req.params.ownerId;
+
+    // Fetch all completed bookings for this owner
+    const bookings = await CompletedBooking.find({
+      equipmentOwnerId: ownerId,
+      paymentStatus: "Paid" // count only completed payments
+    });
+
+    // Sum the totalPrice
+    const totalIncome = bookings.reduce((sum, booking) => sum + booking.totalPrice, 0);
+
+    res.status(200).json({ totalIncome });
+  } catch (error) {
+    console.error("Error fetching owner income:", error);
+    res.status(500).json({ message: "Error fetching income" });
+  }
+};

@@ -1,10 +1,15 @@
 const express = require('express');
 const router = express.Router();
+
+
+
+
 const {
   // createBooking,
   getPayment,
   getUserBookings,
   getOwnerBookings,
+  bookingController,
   updateBookingStatus,
   checkAvailability,             
   createBookingAfterPayment 
@@ -12,6 +17,7 @@ const {
 
 // 📌 Routes
 // router.post('/create', createBooking);
+router.get("/owner/:ownerId/income", bookingController.getOwnerIncome);
 router.get('/payment/:userId', getPayment);
 router.get('/user/:userId', getUserBookings);
 router.get('/owner/:ownerId', getOwnerBookings);
