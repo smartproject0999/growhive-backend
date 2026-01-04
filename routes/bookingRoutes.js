@@ -9,7 +9,6 @@ const {
   getPayment,
   getUserBookings,
   getOwnerBookings,
-  bookingController,
   updateBookingStatus,
   checkAvailability,             
   createBookingAfterPayment 
