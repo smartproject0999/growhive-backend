@@ -24,6 +24,13 @@ const bookingSchema = new mongoose.Schema({
   totalPrice: { type: Number, required: true },
   notes: { type: String },
 
+  address: {
+    fullAddress: { type: String, required: true },
+    city: { type: String, required: true },
+    state: { type: String, required: true },
+    pincode: { type: String, required: true },
+  },
+
   // payment fields
   paymentId: { type: String },         // gateway payment id
   paymentMethod: { type: String },     // e.g. razorpay

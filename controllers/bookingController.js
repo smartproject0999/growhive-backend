@@ -42,11 +42,28 @@ exports.checkAvailability = async (req, res) => {
 // 2) Create booking AFTER successful payment (idempotent-ish)
 exports.createBookingAfterPayment = async (req, res) => {
   try {
-    const { equipmentId, userId, startDate, endDate, totalPrice, notes, paymentId, paymentMethod } = req.body;
+    const { equipmentId, userId, startDate, endDate, totalPrice, notes, paymentId, paymentMethod,address } = req.body;
 
-    if (!equipmentId || !userId || !startDate || !endDate || !totalPrice || !paymentId) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
+    // if (!equipmentId || !userId || !startDate || !endDate || !totalPrice || !paymentId ) {
+    //   return res.status(400).json({ message: "Missing required fields" });
+    // }
+
+    if (
+  !equipmentId ||
+  !userId ||
+  !startDate ||
+  !endDate ||
+  !totalPrice ||
+  !paymentId ||
+  !address ||
+  !address.fullAddress ||
+  !address.city ||
+  !address.state ||
+  !address.pincode
+) {
+  return res.status(400).json({ message: "Missing required fields" });
+}
+
 
      const equipment = await Equipment.findById(equipmentId);
     if (!equipment) {
@@ -86,6 +103,7 @@ exports.createBookingAfterPayment = async (req, res) => {
       endDate: e,
       totalPrice,
       notes,
+      address,
       paymentId,
       paymentMethod,
       paymentStatus: "Paid",
