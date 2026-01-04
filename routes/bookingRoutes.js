@@ -1,9 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const bookingController = require('../controllers/bookingController');
-
-
-
 const {
   // createBooking,
   getPayment,
@@ -16,7 +12,6 @@ const {
 
 // 📌 Routes
 // router.post('/create', createBooking);
-router.get("/owner/:ownerId/income", bookingController.getOwnerIncome);
 router.get('/payment/:userId', getPayment);
 router.get('/user/:userId', getUserBookings);
 router.get('/owner/:ownerId', getOwnerBookings);
