@@ -171,7 +171,7 @@ exports.getOwnerTotalIncome = async (req, res) => {
   try {
     const ownerId = req.params.ownerId;
 
-    const result = await Booking.aggregate([
+    const result = await CompletedBooking.aggregate([
       {
         $match: {
           equipmentOwnerId: new mongoose.Types.ObjectId(ownerId),

@@ -78,6 +78,7 @@ cron.schedule("*/1 * * * *", async () => { // every 1 minute (testing)
         equipmentOwnerId: booking.equipmentOwnerId,
         startDate: booking.startDate,
         endDate: booking.endDate,
+        ownerEarning: booking.ownerEarning,
         totalPrice: booking.totalPrice,
         paymentId: booking.paymentId,
         paymentMethod: booking.paymentMethod,

@@ -22,6 +22,7 @@ const completedBookingSchema = new mongoose.Schema({
   startDate: Date,
   endDate: Date,
   totalPrice: Number,
+  ownerEarning: { type: Number, default: 0 },
 
   paymentId: String,
   paymentMethod: String,
