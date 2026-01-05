@@ -22,6 +22,7 @@ const bookingSchema = new mongoose.Schema({
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },
   totalPrice: { type: Number, required: true },
+  ownerEarning: { type: Number, default: 0 },
   notes: { type: String },
 
   address: {
@@ -36,15 +37,15 @@ const bookingSchema = new mongoose.Schema({
   paymentMethod: { type: String },     // e.g. razorpay
   paymentStatus: {                     // info from gateway
     type: String,
-    enum: ["Pending", "Paid", "Failed", "Refunded"],
-    default: "Pending",
+    enum: ["pending", "paid", "failed", "refunded"],
+    default: "pending",
   },
 
-  // booking status (keeps existing states)
+  // booking stats (keeps existing states)
   status: {
     type: String,
-    enum: ["Pending", "Confirmed", "Completed", "Cancelled"],
-    default: "Pending",
+    enum: ["pending", "confirmed", "completed", "cancelled"],
+    default: "pending",
   },
 }, { timestamps: true });
 

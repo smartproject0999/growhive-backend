@@ -2,7 +2,6 @@
 const Booking = require("../models/Booking");
 const mongoose = require("mongoose");
 const Equipment = require("../models/Equipment");
-const Completed = require("../models/CompletedBooking");
 const CompletedBooking = require("../models/CompletedBooking");
 
 
@@ -23,7 +22,7 @@ exports.checkAvailability = async (req, res) => {
       equipmentId,
       startDate: { $lte: e },
       endDate: { $gte: s },
-      status: { $ne: "Cancelled" }
+      status: { $in: ["confirmed", "completed"] }
     });
 
     if (existingBooking) {
@@ -87,7 +86,7 @@ exports.createBookingAfterPayment = async (req, res) => {
       equipmentId,
       startDate: { $lte: e },
       endDate: { $gte: s },
-      status: { $ne: "Cancelled" }
+      status: { $in: ["confirmed", "completed"] }
     });
 
     if (existingBooking) {
@@ -102,12 +101,13 @@ exports.createBookingAfterPayment = async (req, res) => {
       startDate: s,
       endDate: e,
       totalPrice,
+      ownerEarning: totalPrice, 
       notes,
       address,
       paymentId,
       paymentMethod,
-      paymentStatus: "Paid",
-      status: "Confirmed"
+      paymentStatus: "paid",
+      status: "confirmed"
     });
 
     return res.status(201).json({ message: "Booking created", booking: newBooking });
@@ -165,3 +165,31 @@ exports.updateBookingStatus = async (req, res) => {
   }
 };
 
+// income api 
+
+exports.getOwnerTotalIncome = async (req, res) => {
+  try {
+    const ownerId = req.params.ownerId;
+
+    const result = await Booking.aggregate([
+      {
+        $match: {
+          equipmentOwnerId: new mongoose.Types.ObjectId(ownerId),
+          paymentStatus: "paid"
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalIncome: { $sum: "$ownerEarning" }
+        }
+      }
+    ]);
+
+    res.json({
+      totalIncome: result.length ? result[0].totalIncome : 0
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
