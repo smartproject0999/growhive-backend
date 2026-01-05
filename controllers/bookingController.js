@@ -169,26 +169,44 @@ exports.updateBookingStatus = async (req, res) => {
 
 exports.getOwnerTotalIncome = async (req, res) => {
   try {
-    const ownerId = req.params.ownerId;
+    const ownerId = new mongoose.Types.ObjectId(req.params.ownerId);
 
-    const result = await CompletedBooking.aggregate([
+    const bookingIncome = await Booking.aggregate([
       {
         $match: {
-          equipmentOwnerId: new mongoose.Types.ObjectId(ownerId),
+          equipmentOwnerId: ownerId,
           paymentStatus: "paid"
         }
       },
       {
         $group: {
           _id: null,
-          totalIncome: { $sum: "$ownerEarning" }
+          total: { $sum: "$ownerEarning" }
         }
       }
     ]);
 
-    res.json({
-      totalIncome: result.length ? result[0].totalIncome : 0
-    });
+    const completedIncome = await CompletedBooking.aggregate([
+      {
+        $match: {
+          equipmentOwnerId: ownerId,
+          paymentStatus: "paid"
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$ownerEarning" }
+        }
+      }
+    ]);
+
+    const totalIncome =
+      (bookingIncome[0]?.total || 0) +
+      (completedIncome[0]?.total || 0);
+
+    res.json({ totalIncome });
+
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
