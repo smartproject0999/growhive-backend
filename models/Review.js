@@ -6,8 +6,9 @@ const reviewSchema = new mongoose.Schema({
     ref: 'Equipment',
     required: true
   },
-  userName: {
-    type: String,
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
     required: true
   },
   rating: {
