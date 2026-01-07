@@ -6,8 +6,11 @@ const {
   getUserBookings,
   getOwnerBookings,
   updateBookingStatus,
+  ownerDecisionOnCOD,
+  markCODPaid,
   checkAvailability,             
   createBookingAfterPayment,
+  createCODBookingRequest,
   getOwnerTotalIncome 
 } = require('../controllers/bookingController');
 
@@ -18,8 +21,11 @@ router.get('/user/:userId', getUserBookings);
 router.get('/owner/:ownerId', getOwnerBookings);
 router.get('/owner-total-income/:ownerId', getOwnerTotalIncome);
 router.put('/status/:id', updateBookingStatus);
+router.put('/cod-decision/:id', ownerDecisionOnCOD);
+router.put("/cod-paid/:id", markCODPaid);
 router.post('/check-availability', checkAvailability);
 router.post('/create-after-payment', createBookingAfterPayment);
+router.post('/cod-request', createCODBookingRequest);
 
 
 module.exports = router;

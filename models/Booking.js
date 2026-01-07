@@ -34,12 +34,28 @@ const bookingSchema = new mongoose.Schema({
 
   // payment fields
   paymentId: { type: String },         // gateway payment id
-  paymentMethod: { type: String },     // e.g. razorpay
+  // paymentMethod: { type: String },     // e.g. razorpay
+  paymentMethod: {
+    type: String,
+    enum: ["online", "cod"],
+    required: true,
+  },
   paymentStatus: {                     // info from gateway
     type: String,
     enum: ["pending", "paid", "failed", "refunded"],
     default: "pending",
   },
+
+  // COD APPROVAL FLOW
+ bookingApprovalStatus: {
+  type: String,
+  enum: ["pending_owner", "approved", "rejected"],
+  default: "pending_owner"
+},
+
+  ownerDecisionAt: { type: Date },
+  approvalExpiresAt: { type: Date },
+
 
   // booking stats (keeps existing states)
   status: {

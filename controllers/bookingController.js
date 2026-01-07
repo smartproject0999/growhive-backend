@@ -116,6 +116,162 @@ exports.createBookingAfterPayment = async (req, res) => {
   }
 }; 
 
+// 3) Create COD booking request (WAITING FOR OWNER)
+exports.createCODBookingRequest = async (req, res) => {
+  try {
+    const {
+      equipmentId,
+      userId,
+      startDate,
+      endDate,
+      totalPrice,
+      notes,
+      address
+    } = req.body;
+
+    if (
+      !equipmentId ||
+      !userId ||
+      !startDate ||
+      !endDate ||
+      !totalPrice ||
+      !address
+    ) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const equipment = await Equipment.findById(equipmentId);
+    if (!equipment) {
+      return res.status(404).json({ message: "Equipment not found" });
+    }
+
+    // 🚫 Owner cannot book own equipment
+    if (equipment.ownerId.toString() === userId.toString()) {
+      return res.status(403).json({
+        message: "You cannot rent your own equipment"
+      });
+    }
+
+    const s = new Date(startDate);
+    const e = new Date(endDate);
+
+    // availability check
+    const conflict = await Booking.findOne({
+      equipmentId,
+      startDate: { $lte: e },
+      endDate: { $gte: s },
+      status: { $in: ["confirmed", "completed"] }
+    });
+
+    if (conflict) {
+      return res.status(400).json({
+        message: "Equipment not available for selected dates"
+      });
+    }
+
+    const booking = await Booking.create({
+      equipmentId,
+      userId,
+      equipmentOwnerId: equipment.ownerId,
+      startDate: s,
+      endDate: e,
+      totalPrice,
+      ownerEarning: totalPrice,
+      notes,
+      address,
+
+      paymentMethod: "cod",
+      paymentStatus: "pending",
+
+      bookingApprovalStatus: "pending_owner",
+      approvalExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hrs
+
+      status: "pending"
+    });
+
+    return res.status(201).json({
+      message: "COD request sent to owner",
+      booking
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// 4) Owner approves or rejects COD request
+exports.ownerDecisionOnCOD = async (req, res) => {
+  try {
+    console.log("COD DECISION HIT:", req.params.id);
+
+    const { decision } = req.body; // approve | reject
+    const booking = await Booking.findById(
+      new mongoose.Types.ObjectId(req.params.id)
+    );
+
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+     if (booking.bookingApprovalStatus !== "pending_owner") {
+      return res.status(400).json({
+        message: "Booking already processed"
+      });
+    }
+
+    if (decision === "approve") {
+      booking.bookingApprovalStatus = "approved";
+      booking.status = "confirmed";
+      booking.paymentStatus = "pending"; // COD cash later
+    }
+
+     if (decision === "reject") {
+      booking.bookingApprovalStatus = "rejected";
+      booking.status = "cancelled";
+    }
+
+    // booking.ownerDecisionAt = new Date();
+     await booking.save(); 
+ 
+    res.json({
+      message: `Booking ${decision}d successfully`,
+      booking
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// 5 Mark COD as Paid
+
+exports.markCODPaid = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    if (booking.paymentMethod !== "cod") {
+      return res.status(400).json({ message: "Not a COD booking" });
+    }
+
+    booking.paymentStatus = "paid";
+    booking.status = "completed";
+
+    await booking.save();
+
+    res.json({
+      message: "COD payment marked as paid",
+      booking
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 // 📌 Get bookings by User (for user history)
 exports.getUserBookings = async (req, res) => {
   try {
@@ -142,10 +298,12 @@ exports.getPayment = async (req, res) => {
 exports.getOwnerBookings = async (req, res) => {
   try {
     const bookings = await Booking.find({
-      equipmentOwnerId: req.params.ownerId
-    })
-      .populate("equipmentId", "name imageUrl location price")
-      .populate("userId", "firstName lastName phone location");
+  equipmentOwnerId: req.params.ownerId
+})
+        .sort({ bookingApprovalStatus: -1, createdAt: -1 })
+        .populate("equipmentId", "name imageUrl location price")
+        .populate("userId", "firstName lastName phone");
+
 
     res.json(bookings);
   } catch (error) {
