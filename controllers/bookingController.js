@@ -289,6 +289,22 @@ exports.getFarmerCODBookings = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+// 📌 Owner : Get COD booking status
+exports.getownerCODBookings = async (req, res) => {
+  try {
+    const bookings = await Booking.find({
+      userId: req.params.userId,
+      paymentMethod: "cod"
+    })
+      .sort({ createdAt: -1 })
+      .populate("equipmentId", "name imageUrl location price")
+      .populate("equipmentOwnerId", "firstName lastName phone");
+
+    res.json(bookings);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 
 // 📌 Get bookings by User (for user history)
 exports.getUserBookings = async (req, res) => {
