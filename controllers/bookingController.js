@@ -1,4 +1,4 @@
-// bookingController.js (add these handlers; keep your existing ones too)
+// bookingController.js (robust version)
 const Booking = require("../models/Booking");
 const mongoose = require("mongoose");
 const Equipment = require("../models/Equipment");
@@ -21,13 +21,13 @@ async function sendSMS(phone, message) {
                 },
             }
         );
-
         console.log("📩 SMS sent to", phone);
     } catch (error) {
         console.error("❌ Failed to send SMS:", error.response?.data || error.message);
     }
 }
-// 1) Check availability
+
+// --------------------- 1) Check availability ---------------------
 exports.checkAvailability = async (req, res) => {
   try {
     const { equipmentId, startDate, endDate } = req.body;
@@ -35,8 +35,6 @@ exports.checkAvailability = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-
-    
     const s = new Date(startDate);
     const e = new Date(endDate);
 
@@ -51,59 +49,45 @@ exports.checkAvailability = async (req, res) => {
       return res.status(200).json({ available: false, message: "Not available for selected dates." });
     }
 
-    // if you want, compute price server-side (example placeholder)
-    // const totalPrice = computePrice(equipmentId, s, e);
-    // for now assume client passed totalPrice or server returns a calculated value
     return res.status(200).json({ available: true, message: "Equipment available" });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 };
 
-// 2) Create booking AFTER successful payment (idempotent-ish)
+// --------------------- 2) Create booking AFTER payment ---------------------
 exports.createBookingAfterPayment = async (req, res) => {
   try {
-    const { equipmentId, userId, startDate, endDate, totalPrice, notes, paymentId, paymentMethod,address } = req.body;
+    const { equipmentId, userId, startDate, endDate, totalPrice, notes, paymentId, paymentMethod, address } = req.body;
 
-    // if (!equipmentId || !userId || !startDate || !endDate || !totalPrice || !paymentId ) {
-    //   return res.status(400).json({ message: "Missing required fields" });
-    // }
+    console.log("REQ BODY:", req.body);
 
     if (
-  !equipmentId ||
-  !userId ||
-  !startDate ||
-  !endDate ||
-  !totalPrice ||
-  !paymentId ||
-  !address ||
-  !address.fullAddress ||
-  !address.city ||
-  !address.state ||
-  !address.pincode
-) {
-  return res.status(400).json({ message: "Missing required fields" });
-}
-
-
-     const equipment = await Equipment.findById(equipmentId);
-    if (!equipment) {
-      return res.status(404).json({ message: "Equipment not found" });
+      !equipmentId ||
+      !userId ||
+      !startDate ||
+      !endDate ||
+      !totalPrice ||
+      !paymentId ||
+      !address ||
+      !address.fullAddress ||
+      !address.city ||
+      !address.state ||
+      !address.pincode
+    ) {
+      return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // 🚫 BLOCK OWNER BOOKING OWN EQUIPMENT
+    const equipment = await Equipment.findById(equipmentId);
+    if (!equipment) return res.status(404).json({ message: "Equipment not found" });
+
     if (equipment.ownerId.toString() === userId.toString()) {
-      return res.status(403).json({
-        message: "You cannot rent your own equipment"
-      });
-    } 
-    
-    
+      return res.status(403).json({ message: "You cannot rent your own equipment" });
+    }
 
     const s = new Date(startDate);
     const e = new Date(endDate);
 
-    // Double-check availability again (important)
     const existingBooking = await Booking.findOne({
       equipmentId,
       startDate: { $lte: e },
@@ -112,10 +96,10 @@ exports.createBookingAfterPayment = async (req, res) => {
     });
 
     if (existingBooking) {
-      // NOTE: you might want to issue refund here since payment already took place.
       return res.status(400).json({ message: "Equipment already booked for these dates (post-payment). Please request refund." });
     }
-    // const equipment = await Equipment.findById(equipmentId);
+
+    // Create booking
     const newBooking = await Booking.create({
       equipmentId,
       userId,
@@ -123,79 +107,64 @@ exports.createBookingAfterPayment = async (req, res) => {
       startDate: s,
       endDate: e,
       totalPrice,
-      ownerEarning: totalPrice, 
+      ownerEarning: totalPrice,
       notes,
       address,
       paymentId,
-      bookingApprovalStatus: "approved",
-      approvalExpiresAt: new Date(Data.now() + 24 * 60 * 60 * 1000), 
       paymentMethod,
       paymentStatus: "paid",
-      status: "confirmed"
+      status: "confirmed",
+      // Set optional fields with defaults to avoid schema errors
+      bookingApprovalStatus: null,
+      approvalExpiresAt: null
     });
-    const user = await User.findById(userId);
-if (user && user.phone) {
-   sendSMS(
-    user.phone,
-    `Hi ${user.firstName}, your booking for equipment "${equipment.name}" from ${startDate} to ${endDate} is confirmed.`
-  );
-}
 
-// Optionally notify the owner too
-const owner = await User.findById(equipment.ownerId);
-if (owner && owner.phone) {
-   sendSMS(
-    owner.phone,
-    `✅ Your equipment has been booked by ${user.firstName}. Booking ID: ${newBooking._id}`
-  );
-}
+    // Notify user
+    const user = await User.findById(userId);
+    if (user?.phone) {
+      sendSMS(
+        user.phone,
+        `Hi ${user.firstName}, your booking for equipment "${equipment.name}" from ${startDate} to ${endDate} is confirmed.`
+      );
+    }
+
+    // Notify owner
+    const owner = await User.findById(equipment.ownerId);
+    if (owner?.phone) {
+      sendSMS(
+        owner.phone,
+        `✅ Your equipment has been booked by ${user.firstName}. Booking ID: ${newBooking._id}`
+      );
+    }
+
+    console.log("BOOKING CREATED:", newBooking);
 
     return res.status(201).json({ message: "Booking created", booking: newBooking });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("CREATE BOOKING ERROR:", err);
+    return res.status(500).json({ message: "Payment verified but booking creation failed. Contact support.", error: err.message });
   }
-}; 
+};
 
-// 3) Create COD booking request (WAITING FOR OWNER)
+// --------------------- 3) Create COD booking request ---------------------
 exports.createCODBookingRequest = async (req, res) => {
   try {
-    const {
-      equipmentId,
-      userId,
-      startDate,
-      endDate,
-      totalPrice,
-      notes,
-      address
-    } = req.body;
+    const { equipmentId, userId, startDate, endDate, totalPrice, notes, address } = req.body;
 
-    if (
-      !equipmentId ||
-      !userId ||
-      !startDate ||
-      !endDate ||
-      !totalPrice ||
-      !address
-    ) {
+    if (!equipmentId || !userId || !startDate || !endDate || !totalPrice || !address) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
     const equipment = await Equipment.findById(equipmentId);
-    if (!equipment) {
-      return res.status(404).json({ message: "Equipment not found" });
-    }
+    if (!equipment) return res.status(404).json({ message: "Equipment not found" });
 
-    // 🚫 Owner cannot book own equipment
     if (equipment.ownerId.toString() === userId.toString()) {
-      return res.status(403).json({
-        message: "You cannot rent your own equipment"
-      });
+      return res.status(403).json({ message: "You cannot rent your own equipment" });
     }
 
     const s = new Date(startDate);
     const e = new Date(endDate);
 
-    // availability check
     const conflict = await Booking.findOne({
       equipmentId,
       startDate: { $lte: e },
@@ -203,11 +172,7 @@ exports.createCODBookingRequest = async (req, res) => {
       status: { $in: ["confirmed", "completed"] }
     });
 
-    if (conflict) {
-      return res.status(400).json({
-        message: "Equipment not available for selected dates"
-      });
-    }
+    if (conflict) return res.status(400).json({ message: "Equipment not available for selected dates" });
 
     const booking = await Booking.create({
       equipmentId,
@@ -219,39 +184,27 @@ exports.createCODBookingRequest = async (req, res) => {
       ownerEarning: totalPrice,
       notes,
       address,
-
       paymentMethod: "cod",
       paymentStatus: "pending",
-
       bookingApprovalStatus: "pending_owner",
       approvalExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hrs
-
       status: "pending"
     });
-// Notify the user that request is sent
-const user = await User.findById(userId);
-if (user && user.phone) {
-   sendSMS(
-    user.phone,
-    `Hi ${user.firstName}, your COD booking request for equipment "${equipment.name}" from ${startDate} to ${endDate} has been sent to the owner for approval.`
-  );
-}
 
-// Notify the owner that a request is pending
-const owner = await User.findById(equipment.ownerId);
-if (owner && owner.phone) {
-   sendSMS(
-    owner.phone,
-    `📩 You have a new COD booking request for your equipment "${equipment.name}". Booking ID: ${booking._id}`
-  );
-}
-    return res.status(201).json({
-      message: "COD request sent to owner",
-      booking
-    });
+    const user = await User.findById(userId);
+    if (user?.phone) {
+      sendSMS(user.phone, `Hi ${user.firstName}, your COD booking request for "${equipment.name}" has been sent to the owner.`);
+    }
 
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    const owner = await User.findById(equipment.ownerId);
+    if (owner?.phone) {
+      sendSMS(owner.phone, `📩 You have a new COD booking request for "${equipment.name}". Booking ID: ${booking._id}`);
+    }
+
+    return res.status(201).json({ message: "COD request sent to owner", booking });
+  } catch (err) {
+    console.error("COD BOOKING ERROR:", err);
+    return res.status(500).json({ error: err.message });
   }
 };
 
