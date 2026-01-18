@@ -1,5 +1,7 @@
 const Review = require('../models/Review');
 const Equipment = require('../models/Equipment');
+const CompletedBooking = require("../models/CompletedBooking");
+
 // ➤ GET Reviews by Equipment ID
 exports.getReviews = async (req, res) => {
   try {
@@ -20,9 +22,10 @@ exports.getReviews = async (req, res) => {
 // ➤ POST New Review
 exports.addReview = async (req, res) => {
   try {
-    const { equipmentId, rating, review, userId } = req.body;
+    const { equipmentId, rating, review} = req.body;
+    const userId = req.user._id;
 
-    if (!equipmentId || !rating || !review || !userId) {
+    if (!equipmentId || !rating || !review) {
       return res.status(400).json({ error: "All fields are required" });
     }
 
@@ -35,10 +38,23 @@ exports.addReview = async (req, res) => {
 
     // 🚫 BLOCK OWNER REVIEW
     if (equipment.ownerId.toString() === userId.toString()) {
-      return res.status(403).json({
-        error: "You cannot review your own equipment"
-      });
-    }
+  return res.status(403).json({
+    error: "You cannot review your own equipment"
+  });
+}
+
+    // 🚫 BLOCK if user never completed booking
+    const completedBooking = await CompletedBooking.findOne({
+    equipmentId,
+    userId
+  });
+
+  if (!completedBooking) {
+    return res.status(403).json({
+    error: "Only users with completed bookings can review"
+  });
+}
+
 
     // 🚫 BLOCK DUPLICATE REVIEW
     const alreadyReviewed = await Review.findOne({
