@@ -50,11 +50,11 @@ const bookingSchema = new mongoose.Schema({
  bookingApprovalStatus: {
   type: String,
   enum: ["pending_owner", "approved", "rejected"],
-  default: "pending_owner"
+  default: null
 },
 
-  ownerDecisionAt: { type: Date },
-  approvalExpiresAt: { type: Date },
+  ownerDecisionAt: { type: Date , default: null},
+  approvalExpiresAt: { type: Date , default: null},
 
 
   // booking stats (keeps existing states)
