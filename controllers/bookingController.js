@@ -172,6 +172,8 @@ exports.createCODBookingRequest = async (req, res) => {
       status: { $in: ["confirmed", "completed"] }
     });
 
+
+    
     if (conflict) return res.status(400).json({ message: "Equipment not available for selected dates" });
 
     const booking = await Booking.create({
