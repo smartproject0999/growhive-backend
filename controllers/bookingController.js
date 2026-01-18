@@ -127,6 +127,8 @@ exports.createBookingAfterPayment = async (req, res) => {
       notes,
       address,
       paymentId,
+      bookingApprovalStatus: "approved",
+      approvalExpiresAt: new Date(Data.now() + 24 * 60 * 60 * 1000), 
       paymentMethod,
       paymentStatus: "paid",
       status: "confirmed"
