@@ -3,8 +3,30 @@ const Booking = require("../models/Booking");
 const mongoose = require("mongoose");
 const Equipment = require("../models/Equipment");
 const CompletedBooking = require("../models/CompletedBooking");
+const User = require('../models/User');
+const axios = require("axios");
 
+async function sendSMS(phone, message) {
+    try {
+        await axios.post(
+            `https://api.textbee.dev/api/v1/gateway/devices/${process.env.DEVICE_ID}/send-sms`,
+            {
+                recipients: [phone.startsWith('+') ? phone : `+91${phone}`],
+                message: message,
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': process.env.TEXTBEE_API_KEY,
+                },
+            }
+        );
 
+        console.log("📩 SMS sent to", phone);
+    } catch (error) {
+        console.error("❌ Failed to send SMS:", error.response?.data || error.message);
+    }
+}
 // 1) Check availability
 exports.checkAvailability = async (req, res) => {
   try {
@@ -109,6 +131,22 @@ exports.createBookingAfterPayment = async (req, res) => {
       paymentStatus: "paid",
       status: "confirmed"
     });
+    const user = await User.findById(userId);
+if (user && user.phone) {
+   sendSMS(
+    user.phone,
+    `Hi ${user.firstName}, your booking for equipment "${equipment.name}" from ${startDate} to ${endDate} is confirmed.`
+  );
+}
+
+// Optionally notify the owner too
+const owner = await User.findById(equipment.ownerId);
+if (owner && owner.phone) {
+   sendSMS(
+    owner.phone,
+    `✅ Your equipment has been booked by ${user.firstName}. Booking ID: ${newBooking._id}`
+  );
+}
 
     return res.status(201).json({ message: "Booking created", booking: newBooking });
   } catch (err) {
@@ -188,7 +226,23 @@ exports.createCODBookingRequest = async (req, res) => {
 
       status: "pending"
     });
+// Notify the user that request is sent
+const user = await User.findById(userId);
+if (user && user.phone) {
+   sendSMS(
+    user.phone,
+    `Hi ${user.firstName}, your COD booking request for equipment "${equipment.name}" from ${startDate} to ${endDate} has been sent to the owner for approval.`
+  );
+}
 
+// Notify the owner that a request is pending
+const owner = await User.findById(equipment.ownerId);
+if (owner && owner.phone) {
+   sendSMS(
+    owner.phone,
+    `📩 You have a new COD booking request for your equipment "${equipment.name}". Booking ID: ${booking._id}`
+  );
+}
     return res.status(201).json({
       message: "COD request sent to owner",
       booking
@@ -232,7 +286,20 @@ exports.ownerDecisionOnCOD = async (req, res) => {
 
     // booking.ownerDecisionAt = new Date();
      await booking.save(); 
- 
+     const user = await User.findById(booking.userId);
+if (user && user.phone) {
+  if (decision === "approve") {
+     sendSMS(
+      user.phone,
+      `✅ Your COD booking has been approved by the owner. Booking ID: ${booking._id}`
+    );
+  } else if (decision === "reject") {
+     sendSMS(
+      user.phone,
+      `❌ Your COD booking was rejected by the owner. Booking ID: ${booking._id}`
+    );
+  }
+} 
     res.json({
       message: `Booking ${decision}d successfully`,
       booking

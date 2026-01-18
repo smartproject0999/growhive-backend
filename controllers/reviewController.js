@@ -51,7 +51,7 @@ exports.addReview = async (req, res) => {
 
   if (!completedBooking) {
     return res.status(403).json({
-    error: "Only users with completed bookings can review"
+    error: "You can review only after completing a booking"
   });
 }
 
